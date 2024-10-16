@@ -11,7 +11,16 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
+    "body-parser": "^1.20.3",
     "express": "^4.21.0",
     "pg": "^8.13.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Miladatasys/app-bar-backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Miladatasys/app-bar-backend/issues"
+  },
+  "homepage": "https://github.com/Miladatasys/app-bar-backend#readme"
 }
