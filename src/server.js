@@ -1,37 +1,20 @@
-// Configuración básica
 const express = require('express');
 const db = require('./config/db');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-//Controladores
-//const orderController = require('../controllers/orderController');
-
-// Rutas
-//const router = express.Router();
+// Importar rutas
 const userRoutes = require('./routes/userRoutes');
-const orderRoutes = require('./routes/orderRoutes');
-const barRoutes = require('./routes/barRoutes')
-//module.exports = router; //No estoy seguro de si borrarlo aún o no, creo que va en otra ubicación
+const barRoutes = require('./routes/barRoutes');  // Aquí importamos barRoutes
 
-// Middleware -para la comunicación entre distintas partes
+// Middleware para parsear JSON
 app.use(express.json());
 
-// Para utiliazr las rutas -Rutas pendientes a corrección en base al frontend
-app.use('/api/users', userRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/bars', barRoutes)
+// Usar las rutas
+app.use('/api', userRoutes);
+app.use('/api', barRoutes);  // Aquí montamos las rutas de barRoutes
 
-//router.post('/confirm', orderController.confirmOrder); //sí const router está comentado, este se queda así
-
-
-
-// Para probar la conexión al servidor
-app.get('/', (req, res) => {
-  res.send('Bienvenido a la API de la APP Bar');
-});
-
-// Para probar la conexión o disponibilidad de la bbdd
+// Ruta para verificar la conexión a la base de datos
 app.get('/test-db', async (req, res) => {
   try {
     const result = await db.query('SELECT NOW()');

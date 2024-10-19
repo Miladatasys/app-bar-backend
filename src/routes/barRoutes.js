@@ -1,28 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db'); 
+const db = require('../config/db');
 
-// Endpoint para obtener productos de un bar específico
-router.get('/:barId/products', async (req, res) => {
-  const { barId } = req.params;
-
+// Ruta para obtener todos los bares
+router.get('/bars', async (req, res) => {
   try {
-    const query = 'SELECT id, name, price, image_url FROM Product WHERE bar_id = $1';
-    const { rows } = await db.query(query, [barId]);
-
-    // Transformamos el formato para el frontend
-    const products = rows.map(row => ({
-      id: row.id,
-      name: row.name,
-      price: row.price,
-      image: row.image_url || 'https://via.placeholder.com/80' 
-    }));
-
-    res.json(products);
+    // Cambié 'id' a 'bar_id' para reflejar la estructura correcta de tu base de datos
+    const result = await db.query('SELECT bar_id AS id, business_name, address FROM "Bar"');
+    res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error al obtener productos del bar:', error);
-    res.status(500).json({ error: 'Error interno del Servidor, intente denuevo' });
+    console.error('Error al obtener los bares:', error);  // Añadir para mayor visibilidad en los errores
+    res.status(500).json({ error: 'Error al obtener los bares' });
   }
 });
 
 module.exports = router;
+
