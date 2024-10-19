@@ -5,59 +5,72 @@
 
 -- Eliminar tablas existentes
 
---DROP TABLE IF EXISTS UserType CASCADE; 
---The syntax is correct for PostgreSQL, but as SQL language it will give a warning/error with CASCADE
-DROP TABLE IF EXISTS GroupMember;
-DROP TABLE IF EXISTS OrderGroup;
-DROP TABLE IF EXISTS Payment;
-DROP TABLE IF EXISTS OrderDetail;
-DROP TABLE IF EXISTS Order;
-DROP TABLE IF EXISTS Product;
-DROP TABLE IF EXISTS Table;
-DROP TABLE IF EXISTS Bar;
-DROP TABLE IF EXISTS User;
-DROP TABLE IF EXISTS UserType;
+DROP TABLE IF EXISTS "GroupMember" CASCADE;
+DROP TABLE IF EXISTS "OrderGroup" CASCADE;
+DROP TABLE IF EXISTS "Payment" CASCADE;
+DROP TABLE IF EXISTS "OrderDetail" CASCADE;
+DROP TABLE IF EXISTS "OrderTotal" CASCADE;
+DROP TABLE IF EXISTS "Product" CASCADE;
+DROP TABLE IF EXISTS "BarTable" CASCADE;
+DROP TABLE IF EXISTS "Bar" CASCADE;
+DROP TABLE IF EXISTS "AppUser" CASCADE;
+DROP TABLE IF EXISTS "UserType" CASCADE;
 
--- Indexes to optimize frequent queries
---
---CREATE INDEX idx_order_user ON Order(user_id);
---CREATE INDEX idx_order_bar ON Order(bar_id);
---CREATE INDEX idx_product_bar ON Product(bar_id);
---CREATE INDEX idx_table_bar ON Table(bar_id);
+
+-- Drop sequences for all tables
+DROP SEQUENCE IF EXISTS "UserType_user_type_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "AppUser_user_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "Bar_bar_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "BarTable_table_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "Product_product_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "OrderTotal_orderTotal_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "OrderDetail_orderDetail_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "Payment_payment_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "OrderGroup_orderGroup_id_seq" CASCADE;
+DROP SEQUENCE IF EXISTS "GroupMember_groupMember_id_seq" CASCADE;
+
+
+-- Crear índices para optimizar consultas frecuentes
+CREATE INDEX idx_order_total_user ON OrderTotal(user_id);
+CREATE INDEX idx_order_total_bar ON OrderTotal(bar_id);
+CREATE INDEX idx_product_bar ON Product(bar_id);
+CREATE INDEX idx_bar_table_bar ON BarTable(bar_id);
+CREATE INDEX idx_payment_user ON Payment(user_id);
+CREATE INDEX idx_payment_transaction_date ON Payment(transaction_date);
+CREATE INDEX idx_group_member_order_group ON GroupMember(orderGroup_id);
+
 
 -- Table for user types (roles)
-CREATE TABLE UserType (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE "UserType"(
+    user_type_id SERIAL PRIMARY KEY,
     description VARCHAR(50) UNIQUE NOT NULL -- e.g., "customer", "staff_bar", "staff_kitchen" or "admin"
 );
 
 -- Creation of the User table
-CREATE TABLE User (
-    id SERIAL PRIMARY KEY,
-    rut VARCHAR(12) UNIQUE NOT NULL,
-   
-    user_type_id INTEGER REFERENCES UserType(id), 
+CREATE TABLE "AppUser" (
+    user_id SERIAL PRIMARY KEY,
+    user_type_id INTEGER REFERENCES "UserType"(user_type_id), 
     -- Association with the role
-
+    rut VARCHAR(12) UNIQUE NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     address VARCHAR(255),
-    phone VARCHAR(20),
+    phone_number VARCHAR(20),
     birth_date DATE,
     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_session TIMESTAMP
 );
 
 -- Creation of the Bar table
-CREATE TABLE Bar (
-    id SERIAL PRIMARY KEY,
+CREATE TABLE "Bar" (
+    bar_id SERIAL PRIMARY KEY,
     business_name VARCHAR(100) NOT NULL,
     commercial_name VARCHAR(100) NOT NULL,
     business_rut VARCHAR(12) UNIQUE NOT NULL,
     address VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
+    phone_number VARCHAR(20),
     email VARCHAR(100),
     opening_hours VARCHAR(255),
     total_capacity INTEGER,
@@ -67,9 +80,9 @@ CREATE TABLE Bar (
 );
 
 -- Creation of the Table table
-CREATE TABLE Table (
-    id SERIAL PRIMARY KEY,
-    bar_id INTEGER REFERENCES Bar(id) ON DELETE CASCADE,
+CREATE TABLE "BarTable" (
+    table_id SERIAL PRIMARY KEY,
+    bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
     table_number INTEGER NOT NULL,
     capacity INTEGER,
     qr_code VARCHAR(255) UNIQUE NOT NULL,
@@ -78,9 +91,9 @@ CREATE TABLE Table (
 );
 
 -- Creation of the Product table
-CREATE TABLE Product (
-    id SERIAL PRIMARY KEY,
-    bar_id INTEGER REFERENCES Bar(id) ON DELETE CASCADE,
+CREATE TABLE "Product" (
+    product_id SERIAL PRIMARY KEY,
+    bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     description VARCHAR(500),
     price DECIMAL(10, 2) NOT NULL,
@@ -91,11 +104,11 @@ CREATE TABLE Product (
 );
 
 -- Creation of the Order table
-CREATE TABLE Order (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES User(id) ON DELETE SET NULL, -- If the user is deleted, the order does not disappear
-    table_id INTEGER REFERENCES Table(id) ON DELETE SET NULL, -- The table may disappear but the order history is retained
-    bar_id INTEGER REFERENCES Bar(id),
+CREATE TABLE "OrderTotal" (
+    orderTotal_id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL, -- If the user is deleted, the order does not disappear
+    table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL, -- The table may disappear but the order history is retained
+    bar_id INTEGER REFERENCES "Bar"(bar_id),
     status VARCHAR(20) DEFAULT 'in process',
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_date TIMESTAMP,
@@ -104,19 +117,40 @@ CREATE TABLE Order (
 );
 
 -- Creation of the OrderDetail table
-CREATE TABLE OrderDetail (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES Order(id) ON DELETE CASCADE,
-    product_id INTEGER REFERENCES Product(id),
+CREATE TABLE "OrderDetail" (
+    orderDetail_id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES "OrderTotal"(orderTotal_id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES "Product"(product_id),
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
     subtotal DECIMAL(10, 2) NOT NULL
 );
 
+-- Creation of the OrderGroup table
+CREATE TABLE "OrderGroup" (
+    orderGroup_id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    creator_user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL, -- The creator can be deleted but the group remains
+    table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL,
+    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'active'
+);
+
+-- Creation of the GroupMember table
+CREATE TABLE "GroupMember" (
+    groupMember_id SERIAL PRIMARY KEY,
+    orderGroup_id INTEGER REFERENCES "OrderGroup"(orderGroup_id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending'
+);
+
 -- Creation of the Payment table
-CREATE TABLE Payment (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER REFERENCES Order(id) ON DELETE CASCADE,
+CREATE TABLE "Payment" (
+    payment_id SERIAL PRIMARY KEY,
+    orderTotal_id INTEGER REFERENCES "OrderTotal"(orderTotal_id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL,
+    groupMember_id INTEGER REFERENCES "GroupMember"(groupMember_id) ON DELETE SET NULL,
+    orderGroup_id INTEGER REFERENCES "OrderGroup"(orderGroup_id),
     amount DECIMAL(10, 2) NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     status VARCHAR(20) DEFAULT 'pending',
@@ -124,154 +158,24 @@ CREATE TABLE Payment (
     transaction_number VARCHAR(100)
 );
 
--- Creation of the OrderGroup table
-CREATE TABLE OrderGroup (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    creator_user_id INTEGER REFERENCES User(id) ON DELETE SET NULL, -- The creator can be deleted but the group remains
-    creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'active'
-);
 
--- Creation of the GroupMember table
-CREATE TABLE GroupMember (
-    id SERIAL PRIMARY KEY,
-    order_group_id INTEGER REFERENCES OrderGroup(id) ON DELETE CASCADE,
-    user_id INTEGER REFERENCES User(id) ON DELETE CASCADE,
-    status VARCHAR(20) DEFAULT 'pending'
-);
+-- Para ver histórico de pagos de un usuario
+-- SELECT p.payment_id, p.amount, p.payment_method, p.status, p.transaction_date, p.transaction_number
+-- FROM Payment p
+-- JOIN User u ON p.user_id = u.user_id
+-- WHERE u.user_id = 1; -- Cambia el ID según el usuario que desees consultar
 
 
+-- Para ver todos los grupos de una mesa específica
+-- SELECT og.orderGroup_id, og.name, og.creation_date, og.status
+-- FROM OrderGroup og
+-- WHERE og.table_id = 1; -- Reemplaza "1" con el ID de la mesa que deseas consultar
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- -- Tabla de tipos de usuario (roles)
--- CREATE TABLE TipoUsuario (
---     id SERIAL PRIMARY KEY,
---     descripcion VARCHAR(50) UNIQUE NOT NULL -- ej: "customer", "staff_bar", "staff_kitchen" o "admin"
--- );
-
--- -- Creación de la tabla Usuario
--- CREATE TABLE Usuario (
---     id SERIAL PRIMARY KEY,
---     rut VARCHAR(12) UNIQUE NOT NULL,
-   
---     id_tipo_usuario INTEGER REFERENCES TipoUsuario(id), 
---     -- Asociación con el rol
-
---     correo_electronico VARCHAR(100) UNIQUE NOT NULL,
---     contrasena VARCHAR(255) NOT NULL,
---     nombre VARCHAR(50) NOT NULL,
---     apellido VARCHAR(50) NOT NULL,
---     direccion VARCHAR(255),
---     telefono VARCHAR(20),
---     fecha_nacimiento DATE,
---     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     ultima_sesion TIMESTAMP
--- );
-
--- -- Creación de la tabla Bar
--- CREATE TABLE Bar (
---     id SERIAL PRIMARY KEY,
---     razon_social VARCHAR(100) NOT NULL,
---     nombre_comercial VARCHAR(100) NOT NULL,
---     rut_empresarial VARCHAR(12) UNIQUE NOT NULL,
---     direccion VARCHAR(255) NOT NULL,
---     telefono VARCHAR(20),
---     correo_electronico VARCHAR(100),
---     horario_atencion VARCHAR(255),
---     capacidad_total INTEGER,
---     categoria VARCHAR(50),
---     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     estado VARCHAR(20) DEFAULT 'activo'
--- );
-
--- -- Creación de la tabla Mesa
--- CREATE TABLE Mesa (
---     id SERIAL PRIMARY KEY,
---     id_bar INTEGER REFERENCES Bar(id) ON DELETE CASCADE,
---     numero_mesa INTEGER NOT NULL,
---     capacidad INTEGER,
---     codigo_qr VARCHAR(255) UNIQUE NOT NULL,
---     estado VARCHAR(20) DEFAULT 'libre',
---     UNIQUE (id_bar, numero_mesa) -- No puede haber mesas duplicadas en un mismo bar
--- );
-
--- -- Creación de la tabla Producto
--- CREATE TABLE Producto (
---     id SERIAL PRIMARY KEY,
---     id_bar INTEGER REFERENCES Bar(id) ON DELETE CASCADE,
---     nombre VARCHAR(100) NOT NULL,
---     descripcion VARCHAR(500),
---     precio DECIMAL(10, 2) NOT NULL,
---     categoria VARCHAR(50),
---     disponibilidad BOOLEAN DEFAULT true,
---     tiempo_preparacion INTEGER, -- en minutos
---     imagen_url VARCHAR(255)
--- );
-
--- -- Creación de la tabla Pedido
--- CREATE TABLE Pedido (
---     id SERIAL PRIMARY KEY,
---     id_usuario INTEGER REFERENCES Usuario(id) ON DELETE SET NULL, -- Si el usuario se elimina, el pedido no desaparece
---     id_mesa INTEGER REFERENCES Mesa(id) ON DELETE SET NULL, -- La mesa puede desaparecer pero se guarda el historial del pedido
---     id_bar INTEGER REFERENCES Bar(id),
---     estado VARCHAR(20) DEFAULT 'en proceso',
---     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     fecha_actualizacion TIMESTAMP,
---     total DECIMAL(10, 2),
---     notas_especiales VARCHAR(500)
--- );
-
--- -- Creación de la tabla Detalle_Pedido
--- CREATE TABLE Detalle_Pedido (
---     id SERIAL PRIMARY KEY,
---     id_pedido INTEGER REFERENCES Pedido(id) ON DELETE CASCADE,
---     id_producto INTEGER REFERENCES Producto(id),
---     cantidad INTEGER NOT NULL,
---     precio_unitario DECIMAL(10, 2) NOT NULL,
---     subtotal DECIMAL(10, 2) NOT NULL
--- );
-
--- -- Creación de la tabla Pago
--- CREATE TABLE Pago (
---     id SERIAL PRIMARY KEY,
---     id_pedido INTEGER REFERENCES Pedido(id) ON DELETE CASCADE,
---     monto DECIMAL(10, 2) NOT NULL,
---     metodo_pago VARCHAR(50) NOT NULL,
---     estado VARCHAR(20) DEFAULT 'pendiente',
---     fecha_transaccion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     numero_transaccion VARCHAR(100)
--- );
-
--- -- Creación de la tabla Grupo_Pedido
--- CREATE TABLE Grupo_Pedido (
---     id SERIAL PRIMARY KEY,
---     nombre VARCHAR(100) NOT NULL,
---     id_usuario_creador INTEGER REFERENCES Usuario(id) ON DELETE SET NULL, -- El creador puede ser eliminado pero se mantiene el grupo
---     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     estado VARCHAR(20) DEFAULT 'activo'
--- );
-
--- -- Creación de la tabla Miembro_Grupo
--- CREATE TABLE Miembro_Grupo (
---     id SERIAL PRIMARY KEY,
---     id_grupo_pedido INTEGER REFERENCES Grupo_Pedido(id) ON DELETE CASCADE,
---     id_usuario INTEGER REFERENCES Usuario(id) ON DELETE CASCADE,
---     estado VARCHAR(20) DEFAULT 'pendiente'
--- );
+-- Para ver los detalles de un pedido específico
+-- SELECT od.orderDetail_id, od.product_id, od.quantity, od.unit_price, od.subtotal
+-- FROM "OrderDetail" od
+-- JOIN "OrderTotal" ot ON od.order_id = ot.orderTotal_id
+-- WHERE ot.orderTotal_id = 1; -- Reemplaza con el ID del pedido que deseas consultar
 
 
