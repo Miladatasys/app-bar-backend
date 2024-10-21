@@ -79,7 +79,7 @@ CREATE TABLE "Bar" (
     status VARCHAR(20) DEFAULT 'active'
 );
 
--- Creation of the Table table
+-- Creation of the BarTable table
 CREATE TABLE "BarTable" (
     table_id SERIAL PRIMARY KEY,
     bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
