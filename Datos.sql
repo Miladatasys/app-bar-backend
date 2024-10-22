@@ -42,15 +42,15 @@ VALUES
 -- Inserción de datos en la tabla Product
 INSERT INTO "Product" (bar_id, name, description, price, category, availability, preparation_time, image_url)
 VALUES
-(1, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Bebida', true, 5, 'https://example.com/images/cerveza.jpg'),
-(1, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Comida', true, 15, 'https://example.com/images/pizza.jpg'),
-(1, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Cóctel', false, 10, 'https://example.com/images/mojito.jpg'),
-(2, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Bebida', true, 5, 'https://example.com/images/cerveza.jpg'),
-(2, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Comida', true, 15, 'https://example.com/images/pizza.jpg'),
-(2, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Cóctel', false, 10, 'https://example.com/images/mojito.jpg'),
-(3, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Bebida', true, 5, 'https://example.com/images/cerveza.jpg'),
-(3, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Comida', true, 15, 'https://example.com/images/pizza.jpg'),
-(3, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Cóctel', false, 10, 'https://example.com/images/mojito.jpg');
+(1, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Drink', true, 5, 'https://example.com/images/cerveza.jpg'),
+(1, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Food', true, 15, 'https://example.com/images/pizza.jpg'),
+(1, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Drink', false, 10, 'https://example.com/images/mojito.jpg'),
+(2, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Drink', true, 5, 'https://example.com/images/cerveza.jpg'),
+(2, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Food', true, 15, 'https://example.com/images/pizza.jpg'),
+(2, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Drink', false, 10, 'https://example.com/images/mojito.jpg'),
+(3, 'Cerveza Artesanal', 'Cerveza elaborada localmente con un toque cítrico y aroma a lúpulo.', 3500.00, 'Drink', true, 5, 'https://example.com/images/cerveza.jpg'),
+(3, 'Pizza Margherita', 'Pizza clásica con salsa de tomate, albahaca fresca y mozzarella.', 8500.00, 'Food', true, 15, 'https://example.com/images/pizza.jpg'),
+(3, 'Mojito', 'Cóctel refrescante con ron, menta, azúcar y agua con gas.', 4500.00, 'Drink', false, 10, 'https://example.com/images/mojito.jpg');
 
 
 -- Inserción de datos en la tabla OrderTotal

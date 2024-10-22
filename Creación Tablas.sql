@@ -95,7 +95,7 @@ CREATE TABLE "Product" (
     product_id SERIAL PRIMARY KEY,
     bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    description VARCHAR(500),
+    description VARCHAR(500),-- CHECK (description IN ('drink', 'food')),
     price DECIMAL(10, 2) NOT NULL,
     category VARCHAR(50),
     availability BOOLEAN DEFAULT true,
