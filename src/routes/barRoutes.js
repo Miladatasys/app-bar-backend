@@ -1,6 +1,6 @@
 const express = require('express');
-const router = express.Router();
 const db = require('../config/db');
+const router = express.Router();
 
 // Ruta para obtener productos de un bar específico
 router.get('/:bar_id/products', async (req, res) => {
@@ -51,4 +51,4 @@ router.get('/:bar_id/products', async (req, res) => {
 
 
 
-// module.exports = router;
+ module.exports = router;

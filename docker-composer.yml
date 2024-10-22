@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./capstone-frontend  # Ruta a tu frontend
+    ports:
+      - "8081:8081"  # Puerto de Expo
+    volumes:
+      - ./capstone-frontend:/app
+    stdin_open: true
+    tty: true
+    environment:
+      - NODE_ENV=development
+
+  backend:
+    build:
+      context: ./app-bar-backend  # Ruta a tu backend
+    volumes:
+      - ./app-bar-backend/src:/app/src  # Monta solo la carpeta src
+    ports:
+      - "3000:3000"  # Puerto del backend
+    environment:
+      - NODE_ENV=development
+    command: ["node", "src/server.js"]  # Comando para iniciar el servidor
+
+  db:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # Puerto de PostgreSQL
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: a
+      POSTGRES_DB: Capstone
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "8080:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

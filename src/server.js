@@ -5,14 +5,19 @@ const PORT = process.env.PORT || 3000;
 
 // Importar rutas
 const userRoutes = require('./routes/userRoutes');
-const barRoutes = require('./routes/barRoutes');  // Aquí importamos barRoutes
+const barRoutes = require('./routes/barRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 // Middleware para parsear JSON
 app.use(express.json());
 
 // Usar las rutas
 app.use('/api', userRoutes);
-app.use('/api', barRoutes);  // Aquí montamos las rutas de barRoutes
+app.use('/api', barRoutes);  
+app.use('/api', orderRoutes);
+// app.use('/api/users', userRoutes);  
+// app.use('/api/bars', barRoutes);
+// app.use('/api/orders', orderRoutes);
 
 // Ruta para verificar la conexión a la base de datos
 app.get('/test-db', async (req, res) => {
