@@ -1,28 +1,44 @@
 version: '3.8'
 
-services:
-  frontend:
-    build:
-      context: ./capstone-frontend  # Ruta a tu frontend
-    ports:
-      - "8081:8081"  # Puerto de Expo
-    volumes:
-      - ./capstone-frontend:/app
-    stdin_open: true
-    tty: true
-    environment:
-      - NODE_ENV=development
+FROM node:16-alpine
 
+# Establece el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copia los archivos package.json y package-lock.json primero para aprovechar el cacheo de Docker si no cambian
+COPY package*.json ./
+
+# Instala solo las dependencias de producción (opcional si no estás haciendo pruebas en Docker)
+RUN npm install --production
+
+# Copia el resto de los archivos
+COPY . .
+
+# Expone el puerto 3000 para la API
+EXPOSE 3000
+
+# Establece la variable de entorno NODE_ENV como desarrollo o producción
+ENV NODE_ENV=development
+
+# Comando para iniciar la aplicación
+CMD ["node", "src/server.js"]
+
+
+\app-bar-backend\docker-compose.yml
+
+version: '3.8'
+
+services:
   backend:
     build:
-      context: ./app-bar-backend  # Ruta a tu backend
+      context: .  # Contexto actual, donde está el Dockerfile del backend
     volumes:
-      - ./app-bar-backend/src:/app/src  # Monta solo la carpeta src
+      - ./src:/app/src  # Monta solo la carpeta src
     ports:
       - "3000:3000"  # Puerto del backend
     environment:
       - NODE_ENV=development
-    command: ["node", "src/server.js"]  # Comando para iniciar el servidor
+    command: ["node", "src/server.js"]  # Comando para iniciar el backend
 
   db:
     image: postgres:16

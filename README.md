@@ -2,8 +2,8 @@
 <!-- Framework de trabajo -->
 El framework de trabajo que utilizamos es Node.js por su fácil uso y aprendizaje,
 junto a su compatibilidad con React Native, 
-Para su instalación correr en terminal 
-    -npm install node.js
+Para su instalación, posterior a descarga del repositorio, correr en terminal 
+    -npm install
     -npm start
     
 <!-- Para levantar servidor local http -->
@@ -19,7 +19,7 @@ Para los drivers correr en terminal 'npm install sequelize pg pg-hstore'
 Para su instalación correr en terminal 'npm install sequelize'
 
 <!-- Para realizar la conexión con la base de datos Posgre -->
-Para realizar la conexión con la base de datos Postgre,
+Para realizar la conexión con la base de datos Postgres,
 utilizaremos "pg": "8.7.3"
 
 <!-- para manejar flujos de datos JSON -->
