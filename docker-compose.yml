@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -8,8 +6,8 @@ services:
       - ./src:/app/src  # Monta solo la carpeta src para desarrollo
     ports:
       - "3000:3000"  # Puerto del backend
-    environment:
-      - NODE_ENV=development
+    env_file: 
+      - .env  # Cargar variables desde el archivo .env
     command: ["node", "src/server.js"]  # Comando para iniciar el backend
 
   db:

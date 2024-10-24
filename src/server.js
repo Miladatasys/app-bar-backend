@@ -33,3 +33,8 @@ app.get('/test-db', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
+
+// Ruta básica en la raíz
+app.get('/', (req, res) => {
+  res.send('Servidor funcionando correctamente');
+});
