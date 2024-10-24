@@ -3,9 +3,9 @@ const db = require('../config/db');
 class User {
   // Crear usuario
   static async createUser(userData) {
-    const { first_name, email, password, user_type_id } = userData; // Usamos solo los campos actuales
-    const query = 'INSERT INTO "AppUser"(first_name, email, password, user_type_id) VALUES($1, $2, $3, $4) RETURNING *';
+    const { first_name, email, password, confirmPassword, user_type_id } = userData; // Usamos solo los campos actuales
     const values = [first_name, email, password, user_type_id];
+    const query = 'INSERT INTO "AppUser"(first_name, email, password, user_type_id) VALUES($1, $2, $3, $4) RETURNING *';
     const { rows } = await db.query(query, values);
     return rows[0];
   }
