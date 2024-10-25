@@ -39,7 +39,7 @@ const userController = {
   },
 
   // Registro de staff o admin del bar
-  async registerBarStaff(req, res) {
+  async registerStaff(req, res) {
     const { first_name, email, password, confirmPassword, user_type_id } = req.body;
 
     // Mostrar los datos recibidos

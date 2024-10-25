@@ -6,7 +6,7 @@ const userController = require('../controllers/userController');
 router.post('/register-consumer', userController.registerConsumer);
 
 // Ruta para que el super admin registre a los admins del bar y staff
-router.post('/register-bar-staff', userController.registerBarStaff);
+router.post('/register-bar-staff', userController.registerStaff);
 
 // Ruta para iniciar sesión
 router.post('/login', userController.login);

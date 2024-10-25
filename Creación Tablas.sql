@@ -46,22 +46,39 @@ CREATE TABLE "UserType"(
     description VARCHAR(50) UNIQUE NOT NULL -- e.g., "customer", "staff_bar", "staff_kitchen" or "admin"
 );
 
--- Creation of the User table
+-- -- Creation of the User table
+-- CREATE TABLE "AppUser" (
+--     user_id SERIAL PRIMARY KEY,
+--     user_type_id INTEGER REFERENCES "UserType"(user_type_id), 
+--     -- Association with the role
+--     rut VARCHAR(12) UNIQUE NOT NULL,
+--     email VARCHAR(100) UNIQUE NOT NULL,
+--     password VARCHAR(255) NOT NULL,
+--     first_name VARCHAR(50) NOT NULL,
+--     last_name VARCHAR(50) NOT NULL,
+--     address VARCHAR(255),
+--     phone_number VARCHAR(20),
+--     birth_date DATE,
+--     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     last_session TIMESTAMP
+-- );
+
 CREATE TABLE "AppUser" (
     user_id SERIAL PRIMARY KEY,
     user_type_id INTEGER REFERENCES "UserType"(user_type_id), 
     -- Association with the role
-    rut VARCHAR(12) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    first_name VARCHAR(50) NOT NULL,
-    last_name VARCHAR(50) NOT NULL,
+    rut VARCHAR(12) UNIQUE,
+    email VARCHAR(100) UNIQUE,
+    password VARCHAR(255),
+    first_name VARCHAR(50),
+    last_name VARCHAR(50),
     address VARCHAR(255),
     phone_number VARCHAR(20),
     birth_date DATE,
     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_session TIMESTAMP
 );
+
 
 -- Creation of the Bar table
 CREATE TABLE "Bar" (
