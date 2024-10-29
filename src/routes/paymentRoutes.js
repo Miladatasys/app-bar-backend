@@ -1,13 +1,15 @@
 const express = require('express');
-const db = require('../db'); 
+const db = require('../config/db');
 const router = express.Router();
 
 // Ruta para crear un nuevo pago
-router.post('/payments', [
-    body('orderTotal_id').notEmpty().withMessage('El ID del pedido es necesario'),
-    body('amount').isDecimal().withMessage('El monto debe ser un número decimal'),
-    body('payment_method').notEmpty().withMessage('El método de pago es obligatorio'),
-], async (req, res) => {
+router.post('/payments', 
+// [
+//     body('orderTotal_id').notEmpty().withMessage('El ID del pedido es necesario'),
+//     body('amount').isDecimal().withMessage('El monto debe ser un número decimal'),
+//     body('payment_method').notEmpty().withMessage('El método de pago es obligatorio'),
+// ],
+ async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -27,8 +29,9 @@ router.post('/payments', [
         console.error('Error al crear el pago:', error);
         res.status(500).json({ error: 'Error al crear el pago' });
     }
-});
+// });
+ });
 
-// Otras rutas relacionadas con el pago pueden ser añadidas aquí
+//Otras rutas relacionadas con el pago pueden ser añadidas aquí
 
 module.exports = router;

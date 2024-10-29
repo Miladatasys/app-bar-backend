@@ -7,7 +7,8 @@ const PORT = process.env.PORT || 3000;
 const userRoutes = require('./routes/userRoutes');
 const barRoutes = require('./routes/barRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-// const paymentRoutes = require('/.routes/paymentRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const groupRoutes = require('./routes/groupRoutes');
 
 // Middleware para parsear JSON
 app.use(express.json());
@@ -16,7 +17,8 @@ app.use(express.json());
 app.use('/api', userRoutes);
 app.use('/api', barRoutes);  
 app.use('/api', orderRoutes);
-// app.use('/api', paymentRoutes);
+app.use('/api', paymentRoutes);
+app.use ('/api', groupRoutes);
 
 
 // app.use('/api/users', userRoutes);  

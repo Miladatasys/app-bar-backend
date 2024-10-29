@@ -50,7 +50,7 @@ CREATE TABLE "UserType"(
 -- CREATE TABLE "AppUser" (
 --     user_id SERIAL PRIMARY KEY,
 --     user_type_id INTEGER REFERENCES "UserType"(user_type_id), 
---     -- Association with the role
+--     --Association with the role
 --     rut VARCHAR(12) UNIQUE NOT NULL,
 --     email VARCHAR(100) UNIQUE NOT NULL,
 --     password VARCHAR(255) NOT NULL,
@@ -66,8 +66,8 @@ CREATE TABLE "UserType"(
 CREATE TABLE "AppUser" (
     user_id SERIAL PRIMARY KEY,
     user_type_id INTEGER REFERENCES "UserType"(user_type_id), 
-    -- Association with the role
-    rut VARCHAR(12) UNIQUE,
+    --Association with the role
+    rut VARCHAR(12),
     email VARCHAR(100) UNIQUE,
     password VARCHAR(255),
     first_name VARCHAR(50),
@@ -104,7 +104,7 @@ CREATE TABLE "BarTable" (
     capacity INTEGER,
     qr_code VARCHAR(255) UNIQUE NOT NULL,
     status VARCHAR(20) DEFAULT 'available',
-    UNIQUE (bar_id, table_number) -- No duplicate tables in the same bar
+    UNIQUE (bar_id, table_number)
 );
 
 -- Creation of the Product table
@@ -112,7 +112,7 @@ CREATE TABLE "Product" (
     product_id SERIAL PRIMARY KEY,
     bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    description VARCHAR(500),-- CHECK (description IN ('drink', 'food')),
+    description VARCHAR(300),-- CHECK (description IN ('drink', 'food')),
     price DECIMAL(10, 2) NOT NULL,
     category VARCHAR(50),
     availability BOOLEAN DEFAULT true,
@@ -123,14 +123,15 @@ CREATE TABLE "Product" (
 -- Creation of the Order table
 CREATE TABLE "OrderTotal" (
     orderTotal_id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL, -- If the user is deleted, the order does not disappear
-    table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL, -- The table may disappear but the order history is retained
+    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL,
+    table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL,
     bar_id INTEGER REFERENCES "Bar"(bar_id),
     status VARCHAR(20) DEFAULT 'in process',
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_date TIMESTAMP,
     total DECIMAL(10, 2),
-    special_notes VARCHAR(500)
+    special_notes VARCHAR(500),
+    group_order BOOLEAN DEFAULT false -- Nuevo campo para diferenciar pedidos grupales o individuales
 );
 
 -- Creation of the OrderDetail table
