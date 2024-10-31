@@ -131,7 +131,7 @@ CREATE TABLE "OrderTotal" (
     update_date TIMESTAMP,
     total DECIMAL(10, 2),
     special_notes VARCHAR(500),
-    group_order BOOLEAN DEFAULT false -- Nuevo campo para diferenciar pedidos grupales o individuales
+    group_order BOOLEAN DEFAULT false -- pedidos grupales o individuales
 );
 
 -- Creation of the OrderDetail table
@@ -141,17 +141,20 @@ CREATE TABLE "OrderDetail" (
     product_id INTEGER REFERENCES "Product"(product_id),
     quantity INTEGER NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL,
-    subtotal DECIMAL(10, 2) NOT NULL
+    subtotal DECIMAL(10, 2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending'
 );
+
 
 -- Creation of the OrderGroup table
 CREATE TABLE "OrderGroup" (
     orderGroup_id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    creator_user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL, -- The creator can be deleted but the group remains
+    creator_user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL,
     table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL,
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'active'
+    status VARCHAR(20) DEFAULT 'active',
+    total_order DECIMAL(10, 2) DEFAULT 0.00
 );
 
 -- Creation of the GroupMember table

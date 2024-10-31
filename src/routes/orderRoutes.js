@@ -20,8 +20,29 @@ router.post('/orders', async (req, res) => {
             INSERT INTO "OrderDetail"(order_id, product_id, quantity, unit_price, subtotal)
             VALUES ($1, $2, $3, $4, $5)
         `;
+        // for (const product of products) {
+        //     const subtotal = product.quantity * product.unit_price;
+        //     await db.query(queryOrderDetail, [orderTotal_id, product.product_id, product.quantity, product.unit_price, subtotal]);
+        // }
+
         for (const product of products) {
+            //Revisamos que estén los datos necesarios
+            if (!product.product_id || !product.quantity || !product.unit_price) {
+                console.error('Error: Falta información en el producto:', product);
+                return res.status(400).json({ error: 'Falta información en uno o más productos.' });
+            }
+
             const subtotal = product.quantity * product.unit_price;
+
+            // Agregar logs para verificar valores
+            console.log('Insertando detalle del pedido:', {
+                order_id: orderTotal_id,
+                product_id: product.product_id,
+                quantity: product.quantity,
+                unit_price: product.unit_price,
+                subtotal: subtotal
+            });
+
             await db.query(queryOrderDetail, [orderTotal_id, product.product_id, product.quantity, product.unit_price, subtotal]);
         }
 
@@ -34,25 +55,25 @@ router.post('/orders', async (req, res) => {
 
 // Ruta para confirmar un pedido
 router.post('/confirm', async (req, res) => {
-  const { orderTotal_id } = req.body;
+    const { orderTotal_id } = req.body;
 
-  if (!orderTotal_id) {
-      return res.status(400).json({ error: 'El ID del pedido es necesario para confirmarlo' });
-  }
+    if (!orderTotal_id) {
+        return res.status(400).json({ error: 'El ID del pedido es necesario para confirmarlo' });
+    }
 
-  try {
-      const query = 'UPDATE "OrderTotal" SET status = $1, update_date = NOW() WHERE orderTotal_id = $2 RETURNING *';
-      const result = await db.query(query, ['confirmed', orderTotal_id]);
+    try {
+        const query = 'UPDATE "OrderTotal" SET status = $1, update_date = NOW() WHERE orderTotal_id = $2 RETURNING *';
+        const result = await db.query(query, ['confirmed', orderTotal_id]);
 
-      if (result.rows.length === 0) {
-          return res.status(404).json({ message: 'Pedido no encontrado' });
-      }
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Pedido no encontrado' });
+        }
 
-      res.status(200).json({ message: 'Pedido confirmado', order: result.rows[0] });
-  } catch (error) {
-      console.error('Error al confirmar el pedido:', error);
-      res.status(500).json({ error: 'Error al confirmar el pedido' });
-  }
+        res.status(200).json({ message: 'Pedido confirmado', order: result.rows[0] });
+    } catch (error) {
+        console.error('Error al confirmar el pedido:', error);
+        res.status(500).json({ error: 'Error al confirmar el pedido' });
+    }
 });
 
 // Ruta para obtener una orden por su ID
@@ -111,8 +132,8 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
             order: {
                 ...result.rows[0], // Datos del pedido
                 products: orderDetailsResult.rows,
-                groupMembers: groupMembersResult.rows, 
-                payments: paymentsResult.rows 
+                groupMembers: groupMembersResult.rows,
+                payments: paymentsResult.rows
             }
         });
     } catch (error) {
