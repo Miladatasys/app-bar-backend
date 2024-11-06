@@ -5,9 +5,16 @@ const router = express.Router();
 // Ruta para crear un nuevo pedido
 router.post('/orders', async (req, res) => {
     const { products, user_id, table_id, bar_id, special_notes } = req.body;
+
+    // Log para ver el cuerpo de la solicitud
+    console.log('Cuerpo de la solicitud recibido:', req.body);
+
     try {
+        // Inicializa el total
+        let total = 0;
 
         // 1. Crear el pedido en "OrderTotal"
+        console.log('Creando pedido para: ', user_id)
         const queryOrderTotal = `
             INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, special_notes)
             VALUES($1, $2, $3, $4, NOW(), $5) RETURNING orderTotal_id
@@ -15,36 +22,52 @@ router.post('/orders', async (req, res) => {
         const result = await db.query(queryOrderTotal, [user_id, table_id, bar_id, 'in process', special_notes]);
         const orderTotal_id = result.rows[0].ordertotal_id;
 
+        //Asignación de ID para orden
+        console.log('ID de la orden:', orderTotal_id);
+
         // 2. Insertar cada producto en "OrderDetail"
         const queryOrderDetail = `
             INSERT INTO "OrderDetail"(order_id, product_id, quantity, unit_price, subtotal)
             VALUES ($1, $2, $3, $4, $5)
         `;
-        // for (const product of products) {
-        //     const subtotal = product.quantity * product.unit_price;
-        //     await db.query(queryOrderDetail, [orderTotal_id, product.product_id, product.quantity, product.unit_price, subtotal]);
-        // }
 
         for (const product of products) {
-            //Revisamos que estén los datos necesarios
-            if (!product.product_id || !product.quantity || !product.unit_price) {
+            // Log para ver cada producto en la iteración
+            console.log('Procesando producto:', product);
+
+            // Verificamos que el precio esté presente
+            if (!product.product_id || !product.quantity || !product.price) {
                 console.error('Error: Falta información en el producto:', product);
                 return res.status(400).json({ error: 'Falta información en uno o más productos.' });
             }
 
-            const subtotal = product.quantity * product.unit_price;
+            const subtotal = product.quantity * parseFloat(product.price); // Asegúrate de convertir el precio a un número
+            total += subtotal; // Acumula el subtotal en el total
+
+            // Log para ver el subtotal calculado
+            console.log('Subtotal calculado para producto ID:', product.product_id, 'es:', subtotal);
 
             // Agregar logs para verificar valores
             console.log('Insertando detalle del pedido:', {
                 order_id: orderTotal_id,
                 product_id: product.product_id,
                 quantity: product.quantity,
-                unit_price: product.unit_price,
+                unit_price: product.price,
                 subtotal: subtotal
             });
 
-            await db.query(queryOrderDetail, [orderTotal_id, product.product_id, product.quantity, product.unit_price, subtotal]);
+            await db.query(queryOrderDetail, [orderTotal_id, product.product_id, product.quantity, product.price, subtotal]);
+            // Log para confirmar que se insertó correctamente el detalle
+            console.log('Detalle del pedido insertado para producto ID:', product.product_id);
         }
+
+        // Actualiza el total en OrderTotal después de insertar todos los productos
+        const updateOrderTotalQuery = `
+            UPDATE "OrderTotal" 
+            SET total = $1 
+            WHERE orderTotal_id = $2
+        `;
+        await db.query(updateOrderTotalQuery, [total, orderTotal_id]);
 
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
     } catch (error) {
@@ -88,9 +111,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
         //Consulta para obtener la orden
         console.log('Obteniendo pedido con ID:', orderTotal_id);
         const queryOrderTotal = `
-            SELECT orderTotal_id, user_id, table_id, bar_id, status, creation_date, special_notes
-            FROM "OrderTotal"
-            WHERE orderTotal_id = $1
+            SELECT * FROM "OrderTotal" WHERE orderTotal_id = $1
         `;
         const result = await db.query(queryOrderTotal, [orderTotal_id]);
 
@@ -98,7 +119,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
             return res.status(404).json({ message: 'Pedido no encontrado' });
         }
 
-        //Obtener los detalles del pedido
+        // Obtener los detalles del pedido
         const queryOrderDetails = `
             SELECT od.product_id, od.quantity, od.unit_price, od.subtotal, p.name
             FROM "OrderDetail" od
@@ -108,7 +129,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
         const orderDetailsResult = await db.query(queryOrderDetails, [orderTotal_id]);
         console.log('Detalles del pedido:', orderDetailsResult.rows);
 
-        //Obtener los miembros del grupo si aplica
+        // Obtener los miembros del grupo si aplica
         const queryGroupMembers = `
             SELECT gm.groupMember_id, gm.user_id, gm.status
             FROM "GroupMember" gm
@@ -118,7 +139,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
         const groupMembersResult = await db.query(queryGroupMembers, [result.rows[0].table_id]);
         console.log('Miembros del grupo:', groupMembersResult.rows);
 
-        //Obtener los pagos realizados para el pedido
+        // Obtener los pagos realizados para el pedido
         const queryPayments = `
             SELECT p.payment_id, p.amount, p.payment_method, p.status, p.transaction_date
             FROM "Payment" p
@@ -141,6 +162,5 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener el pedido' });
     }
 });
-
 
 module.exports = router;

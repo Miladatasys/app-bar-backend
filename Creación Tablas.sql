@@ -40,11 +40,6 @@ CREATE INDEX idx_payment_transaction_date ON Payment(transaction_date);
 CREATE INDEX idx_group_member_order_group ON GroupMember(orderGroup_id);
 
 
--- Table for user types (roles)
-CREATE TABLE "UserType"(
-    user_type_id SERIAL PRIMARY KEY,
-    description VARCHAR(50) UNIQUE NOT NULL -- e.g., "customer", "staff_bar", "staff_kitchen" or "admin"
-);
 
 -- -- Creation of the User table
 -- CREATE TABLE "AppUser" (
@@ -62,6 +57,13 @@ CREATE TABLE "UserType"(
 --     registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 --     last_session TIMESTAMP
 -- );
+
+-- Table for user types (roles)
+CREATE TABLE "UserType"(
+    user_type_id SERIAL PRIMARY KEY,
+    description VARCHAR(50) UNIQUE NOT NULL -- e.g., "customer", "staff_bar", "staff_kitchen" or "admin"
+);
+
 
 CREATE TABLE "AppUser" (
     user_id SERIAL PRIMARY KEY,
@@ -178,25 +180,4 @@ CREATE TABLE "Payment" (
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     transaction_number VARCHAR(100)
 );
-
-
--- Para ver histórico de pagos de un usuario
--- SELECT p.payment_id, p.amount, p.payment_method, p.status, p.transaction_date, p.transaction_number
--- FROM Payment p
--- JOIN User u ON p.user_id = u.user_id
--- WHERE u.user_id = 1; -- Cambia el ID según el usuario que desees consultar
-
-
--- Para ver todos los grupos de una mesa específica
--- SELECT og.orderGroup_id, og.name, og.creation_date, og.status
--- FROM OrderGroup og
--- WHERE og.table_id = 1; -- Reemplaza "1" con el ID de la mesa que deseas consultar
-
-
--- Para ver los detalles de un pedido específico
--- SELECT od.orderDetail_id, od.product_id, od.quantity, od.unit_price, od.subtotal
--- FROM "OrderDetail" od
--- JOIN "OrderTotal" ot ON od.order_id = ot.orderTotal_id
--- WHERE ot.orderTotal_id = 1; -- Reemplaza con el ID del pedido que deseas consultar
-
 
