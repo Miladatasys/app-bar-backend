@@ -6,11 +6,12 @@ const router = express.Router();
 // Ruta para obtener todos los bares
 router.get('/bars', async (req, res) => {
   try {
-    //Cambié 'id' a 'bar_id' para reflejar la estructura correctamente
+    //Cambié 'id' a 'bar_id'
     const result = await db.query('SELECT bar_id AS id, business_name, address FROM "Bar"');
+    console.log("Bares Obtenidos: ", result.rows)
     res.status(200).json(result.rows);
   } catch (error) {
-    console.error('Error al obtener los bares:', error);  //Añadir para mayor visibilidad en los errores
+    console.error('Error al obtener los bares:', error); 
     res.status(500).json({ error: 'Error al obtener los bares' });
   }
 });
@@ -29,7 +30,6 @@ router.get('/bars/:bar_id/products', async (req, res) => {
     res.status(500).json({ error: 'Error al obtener productos' });
   }
 });
-
 
 
  module.exports = router;
