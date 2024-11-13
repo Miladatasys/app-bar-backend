@@ -103,7 +103,12 @@ const userController = {
 
       console.log('Token generado:', token);
 
-      res.json({ message: 'Inicio de sesión exitoso', token });
+      res.json({
+        message: 'Inicio de sesión exitoso',
+        token,
+        user_id: user.user_id,        // Incluir el user_id
+        user_type_id: user.user_type_id // Incluir el user_type_id
+      });
     } catch (error) {
       console.log('Error en el proceso de login:', error.message);
       res.status(500).json({ error: error.message });
