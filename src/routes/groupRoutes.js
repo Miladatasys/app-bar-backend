@@ -36,35 +36,30 @@ router.post('/create', async (req, res) => {
 router.post('/:group_id/join', async (req, res) => {
     const { group_id } = req.params;
     const { user_id } = req.body;
-
+  
     try {
-        console.log('Solicitud de unirse al grupo:', { group_id, user_id });
-
-        // Verificar si el grupo está activo
-        const groupCheckQuery = `SELECT status FROM "OrderGroup" WHERE orderGroup_id = $1`;
-        const groupCheckResult = await db.query(groupCheckQuery, [group_id]);
-
-        if (groupCheckResult.rows.length === 0 || groupCheckResult.rows[0].status !== 'active') {
-            console.log('El grupo no está activo o no existe.');
-
-            return res.status(400).json({ message: 'No se puede unir al grupo. El grupo no está activo o no existe.' });
-        }
-
-        // Unir al usuario al grupo
-        const joinQuery = `
-            INSERT INTO "GroupMember"(orderGroup_id, user_id, status)
-            VALUES ($1, $2, 'active')
-        `;
-        await db.query(joinQuery, [group_id, user_id]);
-        console.log('Usuario', { user_id }, ' añadido al grupo', { group_id }, 'exitosamente');
-
-
-        res.status(201).json({ message: 'Usuario añadido al grupo exitosamente', group_id });
+      // Verificar si el grupo está activo
+      const groupCheckQuery = `SELECT status FROM "OrderGroup" WHERE orderGroup_id = $1`;
+      const groupCheckResult = await db.query(groupCheckQuery, [group_id]);
+  
+      if (groupCheckResult.rows.length === 0 || groupCheckResult.rows[0].status !== 'active') {
+        return res.status(400).json({ message: 'No se puede unir al grupo. El grupo no está activo o no existe.' });
+      }
+  
+      // Unir al usuario al grupo
+      const joinQuery = `
+        INSERT INTO "GroupMember"(orderGroup_id, user_id, status)
+        VALUES ($1, $2, 'active')
+      `;
+      await db.query(joinQuery, [group_id, user_id]);
+  
+      res.status(201).json({ message: 'Usuario añadido al grupo exitosamente', group_id });
     } catch (error) {
-        console.error('Error al unirse al grupo:', error);
-        res.status(500).json({ error: 'Error al unirse al grupo' });
+      console.error('Error al unirse al grupo:', error);
+      res.status(500).json({ error: 'Error al unirse al grupo' });
     }
-});
+  });
+  
 
 // Obtener detalles del grupo
 router.get('/:group_id', async (req, res) => {

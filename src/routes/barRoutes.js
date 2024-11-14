@@ -6,7 +6,6 @@ const router = express.Router();
 // Ruta para obtener todos los bares
 router.get('/bars', async (req, res) => {
   try {
-    //Cambié 'id' a 'bar_id'
     const result = await db.query('SELECT bar_id AS id, business_name, address FROM "Bar"');
     console.log("Bares Obtenidos: ", result.rows)
     res.status(200).json(result.rows);
