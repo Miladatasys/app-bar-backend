@@ -61,7 +61,12 @@ CREATE INDEX idx_group_member_order_group ON GroupMember(orderGroup_id);
 -- Table for user types (roles)
 CREATE TABLE "UserType"(
     user_type_id SERIAL PRIMARY KEY,
-    description VARCHAR(50) UNIQUE NOT NULL -- e.g., "customer", "staff_bar", "staff_kitchen" or "admin"
+    description VARCHAR(50) UNIQUE NOT NULL 
+-- 1 customer
+-- 2 staff_bar
+-- 3 staff_kitchen
+-- 4 waiter
+-- 5 admin
 );
 
 
@@ -156,15 +161,19 @@ CREATE TABLE "OrderGroup" (
     table_id INTEGER REFERENCES "BarTable"(table_id) ON DELETE SET NULL,
     creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(20) DEFAULT 'active',
-    total_order DECIMAL(10, 2) DEFAULT 0.00
+    total_order DECIMAL(10, 2) DEFAULT 0.00,
+    split_type VARCHAR(20) DEFAULT 'equally' -- Opciones: 'equally', 'custom'
 );
+
 
 -- Creation of the GroupMember table
 CREATE TABLE "GroupMember" (
     groupMember_id SERIAL PRIMARY KEY,
     orderGroup_id INTEGER REFERENCES "OrderGroup"(orderGroup_id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE CASCADE,
-    status VARCHAR(20) DEFAULT 'pending'
+    status VARCHAR(20) DEFAULT 'pending',
+    is_payer BOOLEAN DEFAULT FALSE, -- Indica si este miembro pagará una parte
+    amount_to_pay DECIMAL(10, 2) DEFAULT 0.00 -- Monto asignado si es personalizado
 );
 
 -- Creation of the Payment table
@@ -180,4 +189,5 @@ CREATE TABLE "Payment" (
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     transaction_number VARCHAR(100)
 );
+
 

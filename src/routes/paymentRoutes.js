@@ -32,6 +32,53 @@ router.post('/payments',
 // });
  });
 
-//Otras rutas relacionadas con el pago pueden ser añadidas aquí
+ router.post('/:group_id/creator-pay', async (req, res) => {
+    const { group_id } = req.params;
+    const { user_id, payment_method } = req.body;
+
+    try {
+        console.log('Solicitud de pago total por el creador:', { group_id, user_id, payment_method });
+
+        // Verificar si el usuario es el creador del grupo y tiene is_payer = true
+        const payerCheckQuery = `
+            SELECT is_payer FROM "GroupMember"
+            WHERE orderGroup_id = $1 AND user_id = $2
+        `;
+        const payerCheckResult = await db.query(payerCheckQuery, [group_id, user_id]);
+
+        if (payerCheckResult.rows.length === 0 || !payerCheckResult.rows[0].is_payer) {
+            return res.status(403).json({ message: 'El usuario no está autorizado para pagar el total del grupo.' });
+        }
+
+        // Obtener el total del grupo
+        const totalQuery = `
+            SELECT total_order FROM "OrderGroup"
+            WHERE orderGroup_id = $1
+        `;
+        const totalResult = await db.query(totalQuery, [group_id]);
+
+        if (totalResult.rows.length === 0 || totalResult.rows[0].total_order <= 0) {
+            return res.status(400).json({ message: 'No hay total para pagar en el grupo.' });
+        }
+
+        const total_order = totalResult.rows[0].total_order;
+
+        // Registrar el pago en la tabla "Payment"
+        const paymentQuery = `
+            INSERT INTO "Payment" (orderGroup_id, user_id, amount, payment_method, status)
+            VALUES ($1, $2, $3, $4, 'completed') RETURNING payment_id
+        `;
+        const paymentResult = await db.query(paymentQuery, [group_id, user_id, total_order, payment_method]);
+
+        console.log('Pago total registrado correctamente:', paymentResult.rows[0].payment_id);
+
+        res.status(201).json({ message: 'Pago total realizado exitosamente', payment_id: paymentResult.rows[0].payment_id });
+    } catch (error) {
+        console.error('Error al realizar el pago total:', error);
+        res.status(500).json({ error: 'Error al realizar el pago total del grupo' });
+    }
+});
+
+
 
 module.exports = router;
