@@ -152,7 +152,6 @@ CREATE TABLE "OrderDetail" (
     status VARCHAR(20) DEFAULT 'pending'
 );
 
-
 -- Creation of the OrderGroup table
 CREATE TABLE "OrderGroup" (
     orderGroup_id SERIAL PRIMARY KEY,
@@ -164,7 +163,6 @@ CREATE TABLE "OrderGroup" (
     total_order DECIMAL(10, 2) DEFAULT 0.00,
     split_type VARCHAR(20) DEFAULT 'equally' -- Opciones: 'equally', 'custom'
 );
-
 
 -- Creation of the GroupMember table
 CREATE TABLE "GroupMember" (

@@ -44,8 +44,6 @@ router.post('/creategroup', async (req, res) => {
 
 
 
-
-
 // Unirse a un grupo
 router.post('/:group_id/join', async (req, res) => {
     const { group_id } = req.params;
@@ -106,6 +104,7 @@ router.get('/:group_id', async (req, res) => {
     }
 });
 
+
 // Realizar pago en grupo
 router.post('/:group_id/pay', async (req, res) => {
     const { group_id } = req.params;
@@ -127,5 +126,6 @@ router.post('/:group_id/pay', async (req, res) => {
         res.status(500).json({ error: 'Error al realizar el pago' });
     }
 });
+
 
 module.exports = router;
