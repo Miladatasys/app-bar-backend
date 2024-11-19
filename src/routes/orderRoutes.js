@@ -134,10 +134,10 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
             SELECT gm.groupMember_id, gm.user_id, gm.status
             FROM "GroupMember" gm
             JOIN "OrderGroup" og ON gm.orderGroup_id = og.orderGroup_id
-            WHERE og.table_id = $1
+            WHERE og.orderGroup_id = $1
         `;
-        const groupMembersResult = await db.query(queryGroupMembers, [result.rows[0].table_id]);
-        console.log('Miembros del grupo:', groupMembersResult.rows);
+        const groupMembersResult = await db.query(queryGroupMembers, [result.rows[0].ordergroup_id]);
+        console.log('Miembros del grupo relacionados con la orden:', groupMembersResult.rows);
 
         // Obtener los pagos realizados para el pedido
         const queryPayments = `
