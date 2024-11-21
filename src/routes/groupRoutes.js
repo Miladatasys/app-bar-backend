@@ -74,9 +74,9 @@ router.post('/group/:group_id/join', async (req, res) => {
         }
 
         // Verificar si el usuario ya es miembro
-        const memberCheckQuery = `
-            SELECT * FROM "GroupMember" WHERE orderGroup_id = $1 AND user_id = $2
-        `;
+        const memberCheckQuery = 
+        `SELECT * FROM "GroupMember" WHERE orderGroup_id = $1 AND user_id = $2`;
+        
         const memberCheckResult = await db.query(memberCheckQuery, [group_id, user_id]);
 
         if (memberCheckResult.rows.length > 0) {

@@ -137,13 +137,28 @@ CREATE TABLE "Payment" (
     orderTotal_id INTEGER REFERENCES "OrderTotal"(orderTotal_id) ON DELETE CASCADE,
     user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE SET NULL,
     groupMember_id INTEGER REFERENCES "GroupMember"(groupMember_id) ON DELETE SET NULL,
-    orderGroup_id INTEGER REFERENCES "OrderGroup"(orderGroup_id),
+    orderGroup_id INTEGER REFERENCES "OrderGroup"(orderGroup_id) ON DELETE CASCADE;
     amount DECIMAL(15, 2) NOT NULL, -- Monto en CLP
     payment_method VARCHAR(50) NOT NULL, -- Método de pago: 'cash', 'credit card', etc.
     status VARCHAR(20) DEFAULT 'pending',
     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     transaction_number VARCHAR(100)
 );
+
+CREATE TABLE "BarQueue" (
+    barQueue_id SERIAL PRIMARY KEY,
+    orderDetail_id INTEGER REFERENCES "OrderDetail"(orderDetail_id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending', -- Estado del producto (pending, confirmed)
+    confirmation_date TIMESTAMP
+);
+
+CREATE TABLE "KitchenQueue" (
+    kitchenQueue_id SERIAL PRIMARY KEY,
+    orderDetail_id INTEGER REFERENCES "OrderDetail"(orderDetail_id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending', -- Estado del producto (pending, confirmed)
+    confirmation_date TIMESTAMP
+);
+
 
 -- Índices para optimización
 CREATE INDEX idx_order_total_user ON "OrderTotal"(user_id);

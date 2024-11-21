@@ -51,4 +51,17 @@
 -- SELECT bar_id, business_name FROM "Bar" WHERE bar_id = (SELECT DISTINCT bar_id FROM "OrderTotal" WHERE orderTotal_id IN (85, 86, 87));
 -- SELECT table_id, table_number, bar_id FROM "BarTable" WHERE table_id IN (SELECT DISTINCT table_id FROM "OrderTotal" WHERE orderTotal_id IN (85, 86, 87));
 -- SELECT * FROM "Bar" WHERE bar_id = 1;
-SELECT orderTotal_id, bar_id FROM "OrderTotal" WHERE orderTotal_id IN (85, 86, 87, 91, 92, 93);
+-- SELECT orderTotal_id, bar_id FROM "OrderTotal" WHERE orderTotal_id IN (85, 86, 87, 91, 92, 93);
+
+--Para conseguir todos los miembros de un grupo
+-- SELECT 
+--     gm.groupMember_id,
+--     gm.orderGroup_id,
+--     gm.user_id,
+
+--    -- gm.status,
+--     gm.is_payer
+
+-- FROM "GroupMember" gm
+-- JOIN "AppUser" au ON gm.user_id = au.user_id
+-- WHERE gm.orderGroup_id = 54;
