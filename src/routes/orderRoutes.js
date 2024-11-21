@@ -38,6 +38,10 @@ router.post('/orders', async (req, res) => {
             total += subtotal;
 
             const section = product.category.toLowerCase() === 'drink' ? 'bar' : 'kitchen';
+            if (!['drink', 'food'].includes(product.category.toLowerCase())) {
+                console.error(`Categoría inválida para el producto: ${product.category}`);
+                continue; // Ignora productos con categorías inválidas
+            }
 
             // Inserta en OrderDetail
             const detailResult = await db.query(queryOrderDetail, [
@@ -56,7 +60,7 @@ router.post('/orders', async (req, res) => {
                 await db.query(`
                     INSERT INTO "BarQueue"(orderDetail_id) VALUES ($1)
                 `, [orderDetail_id]);
-            } else if (section === 'itchen') {
+            } else if (section === 'kitchen') {
                 await db.query(`
                     INSERT INTO "KitchenQueue"(orderDetail_id) VALUES ($1)
                 `, [orderDetail_id]);
@@ -219,7 +223,7 @@ router.get('/kitchen/queue', async (req, res) => {
             FROM "KitchenQueue" kq
             JOIN "OrderDetail" od ON kq.orderDetail_id = od.orderDetail_id
             JOIN "Product" p ON od.product_id = p.product_id
-           WHERE od.section = 'kitchen' WHERE kq.status = 'pending'`;
+            WHERE od.section = 'kitchen' AND kq.status = 'pending';`;
         const result = await db.query(kitchenQueueQuery);
 
         res.status(200).json(result.rows);
@@ -229,6 +233,7 @@ router.get('/kitchen/queue', async (req, res) => {
     }
 });
 
+//Para confirmar desde la vista respectiva
 router.put('/bar/confirm', async (req, res) => {
     const { barQueue_ids } = req.body;
 
@@ -280,6 +285,39 @@ router.put('/kitchen/confirm', async (req, res) => {
     } catch (error) {
         console.error('Error al confirmar productos en cocina:', error);
         res.status(500).json({ error: 'Error al confirmar productos en cocina.' });
+    }
+});
+
+    //Para limpiar las colas
+router.delete('/bar/queue/clear', async (req, res) => {
+    try {
+        await db.query('DELETE FROM "BarQueue";');
+        res.status(200).json({ message: 'BarQueue limpiada con éxito.' });
+    } catch (error) {
+        console.error('Error al limpiar BarQueue:', error);
+        res.status(500).json({ error: 'Error al limpiar BarQueue.' });
+    }
+});
+
+router.delete('/kitchen/queue/clear', async (req, res) => {
+    try {
+        await db.query('DELETE FROM "KitchenQueue";');
+        res.status(200).json({ message: 'KitchenQueue limpiada con éxito.' });
+    } catch (error) {
+        console.error('Error al limpiar KitchenQueue:', error);
+        res.status(500).json({ error: 'Error al limpiar KitchenQueue.' });
+    }
+});
+
+    //Ambas colas
+router.delete('/queues/clear', async (req, res) => {
+    try {
+        await db.query('DELETE FROM "BarQueue";');
+        await db.query('DELETE FROM "KitchenQueue";');
+        res.status(200).json({ message: 'Ambas colas limpiadas con éxito.' });
+    } catch (error) {
+        console.error('Error al limpiar las colas:', error);
+        res.status(500).json({ error: 'Error al limpiar las colas.' });
     }
 });
 
