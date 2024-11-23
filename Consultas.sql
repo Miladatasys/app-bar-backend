@@ -80,3 +80,6 @@
 -- JOIN "OrderGroup" og ON gm.orderGroup_id = og.orderGroup_id
 -- JOIN "AppUser" creator ON og.creator_user_id = creator.user_id
 -- WHERE gm.orderGroup_id = 60;
+
+-- Para comprobar pagos de un pedido 
+-- SELECT * FROM "OrderTotal" WHERE orderTotal_id = 430;
