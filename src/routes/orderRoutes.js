@@ -2,17 +2,15 @@ const express = require('express');
 const db = require('../config/db');
 const router = express.Router();
 
+
 // Ruta para crear un nuevo pedido
 router.post('/orders', async (req, res) => {
     const { products, user_id, table_id, bar_id, special_notes, orderGroup_id } = req.body;
 
     try {
-        let total = 0;
-
-        // Crear el pedido en "OrderTotal"
         const queryOrderTotal = `
-            INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, special_notes, group_order, orderGroup_id)
-            VALUES($1, $2, $3, $4, NOW(), $5, $6, $7) RETURNING orderTotal_id
+            INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, special_notes, group_order, orderGroup_id, total)
+            VALUES($1, $2, $3, $4, NOW(), $5, $6, $7, $8) RETURNING orderTotal_id
         `;
         const result = await db.query(queryOrderTotal, [
             user_id,
@@ -21,59 +19,27 @@ router.post('/orders', async (req, res) => {
             'in process',
             special_notes,
             !!orderGroup_id,
-            orderGroup_id || null
+            orderGroup_id || null,
+            0
         ]);
         const orderTotal_id = result.rows[0].ordertotal_id;
 
         console.log('Pedido creado con ID:', orderTotal_id);
 
-        // Insertar productos en "OrderDetail" y en las tablas intermedias
         const queryOrderDetail = `
-            INSERT INTO "OrderDetail"(order_id, product_id, quantity, unit_price, subtotal, status, section)
-            VALUES ($1, $2, $3, $4, $5, 'pending', $6) RETURNING orderDetail_id
+            INSERT INTO "OrderDetail"(order_id, product_id, quantity, status, section)
+            VALUES ($1, $2, $3, 'pending', $4) RETURNING orderDetail_id
         `;
 
         for (const product of products) {
-            const subtotal = product.quantity * parseFloat(product.price);
-            total += subtotal;
-
             const section = product.category.toLowerCase() === 'drink' ? 'bar' : 'kitchen';
-            if (!['drink', 'food'].includes(product.category.toLowerCase())) {
-                console.error(`Categoría inválida para el producto: ${product.category}`);
-                continue; // Ignora productos con categorías inválidas
-            }
-
-            // Inserta en OrderDetail
-            const detailResult = await db.query(queryOrderDetail, [
+            await db.query(queryOrderDetail, [
                 orderTotal_id,
                 product.product_id,
                 product.quantity,
-                product.price,
-                subtotal,
                 section
             ]);
-
-            const orderDetail_id = detailResult.rows[0].orderdetail_id;
-
-            // Inserta en la tabla intermedia correspondiente
-            if (section === 'bar') {
-                await db.query(`
-                    INSERT INTO "BarQueue"(orderDetail_id) VALUES ($1)
-                `, [orderDetail_id]);
-            } else if (section === 'kitchen') {
-                await db.query(`
-                    INSERT INTO "KitchenQueue"(orderDetail_id) VALUES ($1)
-                `, [orderDetail_id]);
-            }
         }
-
-        // Actualiza el total en OrderTotal
-        const updateOrderTotalQuery = `
-            UPDATE "OrderTotal"
-            SET total = $1
-            WHERE orderTotal_id = $2
-        `;
-        await db.query(updateOrderTotalQuery, [total, orderTotal_id]);
 
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
     } catch (error) {
@@ -81,7 +47,6 @@ router.post('/orders', async (req, res) => {
         res.status(500).json({ error: 'Error al crear el pedido.' });
     }
 });
-
 
 
 // Ruta para confirmar un pedido
@@ -199,6 +164,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
     }
 });
 
+
 router.get('/bar/queue', async (req, res) => {
     try {
         const barQueueQuery =
@@ -215,6 +181,7 @@ router.get('/bar/queue', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener productos para barra.' });
     }
 });
+
 
 router.get('/kitchen/queue', async (req, res) => {
     try {
@@ -233,93 +200,173 @@ router.get('/kitchen/queue', async (req, res) => {
     }
 });
 
+
 //Para confirmar desde la vista respectiva
+// Confirmar productos en barra
 router.put('/bar/confirm', async (req, res) => {
-    const { barQueue_ids } = req.body;
+    const { barQueue_ids, prices } = req.body;
 
     try {
-        // Actualiza los productos en BarQueue
-        await db.query(`
+        const confirmedQuery = `
             UPDATE "BarQueue"
             SET status = 'confirmed', confirmation_date = NOW()
             WHERE barQueue_id = ANY($1)
-        `, [barQueue_ids]);
+            RETURNING orderDetail_id;
+        `;
+        const confirmedResult = await db.query(confirmedQuery, [barQueue_ids]);
 
-        // Actualiza el estado en OrderDetail
-        await db.query(`
-            UPDATE "OrderDetail"
-            SET status = 'ready'
-            WHERE orderDetail_id IN (
-                SELECT orderDetail_id FROM "BarQueue" WHERE barQueue_id = ANY($1)
-            )
-        `, [barQueue_ids]);
+        const orderDetailIds = confirmedResult.rows.map(row => row.orderdetail_id);
 
-        res.status(200).json({ message: 'Productos confirmados en barra.' });
+        for (let i = 0; i < orderDetailIds.length; i++) {
+            const orderDetailId = orderDetailIds[i];
+            const price = prices[i]; // Suponemos que el precio está en el mismo orden que los IDs
+
+            const updateQuery = `
+                UPDATE "OrderDetail"
+                SET unit_price = $1, subtotal = quantity * $1, status = 'ready'
+                WHERE orderDetail_id = $2
+                RETURNING order_id, subtotal;
+            `;
+            const updateResult = await db.query(updateQuery, [price, orderDetailId]);
+
+            const { order_id, subtotal } = updateResult.rows[0];
+
+            await db.query(`
+                UPDATE "OrderTotal"
+                SET total = COALESCE(total, 0) + $1
+                WHERE orderTotal_id = $2;
+            `, [subtotal, order_id]);
+        }
+
+        res.status(200).json({ message: 'Productos confirmados en barra y total actualizado.' });
     } catch (error) {
         console.error('Error al confirmar productos en barra:', error);
         res.status(500).json({ error: 'Error al confirmar productos en barra.' });
     }
 });
 
+
+
 router.put('/kitchen/confirm', async (req, res) => {
     const { kitchenQueue_ids } = req.body;
 
     try {
         // Actualiza los productos en KitchenQueue
-        await db.query(`
+        const confirmedQuery = `
             UPDATE "KitchenQueue"
             SET status = 'confirmed', confirmation_date = NOW()
             WHERE kitchenQueue_id = ANY($1)
-        `, [kitchenQueue_ids]);
+            RETURNING orderDetail_id;
+        `;
+        const confirmedResult = await db.query(confirmedQuery, [kitchenQueue_ids]);
 
-        // Actualiza el estado en OrderDetail
-        await db.query(`
-            UPDATE "OrderDetail"
-            SET status = 'ready'
-            WHERE orderDetail_id IN (
-                SELECT orderDetail_id FROM "KitchenQueue" WHERE kitchenQueue_id = ANY($1)
-            )
-        `, [kitchenQueue_ids]);
+        const orderDetailIds = confirmedResult.rows.map(row => row.orderdetail_id);
 
-        res.status(200).json({ message: 'Productos confirmados en cocina.' });
+        // Calcula y actualiza el total para cada producto confirmado
+        for (const orderDetailId of orderDetailIds) {
+            const updateQuery = `
+                UPDATE "OrderDetail"
+                SET status = 'ready', subtotal = quantity * unit_price
+                WHERE orderDetail_id = $1
+                RETURNING order_id, subtotal;
+            `;
+            const updateResult = await db.query(updateQuery, [orderDetailId]);
+
+            const { order_id, subtotal } = updateResult.rows[0];
+
+            await db.query(`
+                UPDATE "OrderTotal"
+                SET total = COALESCE(total, 0) + $1
+                WHERE orderTotal_id = $2;
+            `, [subtotal, order_id]);
+        }
+
+        res.status(200).json({ message: 'Productos confirmados en cocina y total actualizado.' });
     } catch (error) {
         console.error('Error al confirmar productos en cocina:', error);
         res.status(500).json({ error: 'Error al confirmar productos en cocina.' });
     }
 });
 
-    //Para limpiar las colas
-router.delete('/bar/queue/clear', async (req, res) => {
+
+//Para limpiar las colas
+router.put('/bar/reject', async (req, res) => {
+    const { barQueue_ids } = req.body;
+
     try {
-        await db.query('DELETE FROM "BarQueue";');
-        res.status(200).json({ message: 'BarQueue limpiada con éxito.' });
+        // Actualizar el estado en BarQueue a 'rejected'
+        await db.query(`
+                UPDATE "BarQueue"
+                SET status = 'rejected', confirmation_date = NOW()
+                WHERE barQueue_id = ANY($1)
+            `, [barQueue_ids]);
+
+        // Eliminar productos rechazados de OrderDetail
+        const deleteDetailsQuery = `
+                DELETE FROM "OrderDetail"
+                WHERE orderDetail_id IN (
+                    SELECT orderDetail_id FROM "BarQueue" WHERE barQueue_id = ANY($1)
+                )
+                RETURNING order_id, subtotal;
+            `;
+        const deleteDetailsResult = await db.query(deleteDetailsQuery, [barQueue_ids]);
+
+        // Actualizar el total en OrderTotal
+        for (const row of deleteDetailsResult.rows) {
+            await db.query(`
+                    UPDATE "OrderTotal"
+                    SET total = total - $1
+                    WHERE orderTotal_id = $2
+                `, [row.subtotal, row.order_id]);
+        }
+
+        res.status(200).json({ message: 'Productos rechazados y eliminados de la cola y el pedido.' });
     } catch (error) {
-        console.error('Error al limpiar BarQueue:', error);
-        res.status(500).json({ error: 'Error al limpiar BarQueue.' });
+        console.error('Error al rechazar productos en barra:', error);
+        res.status(500).json({ error: 'Error al rechazar productos en barra.' });
     }
 });
 
-router.delete('/kitchen/queue/clear', async (req, res) => {
+
+router.put('/kitchen/reject', async (req, res) => {
+    const { kitchenQueue_ids } = req.body;
+
     try {
-        await db.query('DELETE FROM "KitchenQueue";');
-        res.status(200).json({ message: 'KitchenQueue limpiada con éxito.' });
+        // Actualizar el estado en KitchenQueue a 'rejected'
+        await db.query(`
+            UPDATE "KitchenQueue"
+            SET status = 'rejected', confirmation_date = NOW()
+            WHERE kitchenQueue_id = ANY($1)
+        `, [kitchenQueue_ids]);
+
+        // Eliminar productos rechazados de OrderDetail
+        const deleteDetailsQuery = `
+            DELETE FROM "OrderDetail"
+            WHERE orderDetail_id IN (
+                SELECT orderDetail_id FROM "KitchenQueue" WHERE kitchenQueue_id = ANY($1)
+            )
+            RETURNING order_id, subtotal;
+        `;
+        const deleteDetailsResult = await db.query(deleteDetailsQuery, [kitchenQueue_ids]);
+
+        // Actualizar el total en OrderTotal
+        for (const row of deleteDetailsResult.rows) {
+            await db.query(`
+                UPDATE "OrderTotal"
+                SET total = total - $1
+                WHERE orderTotal_id = $2
+            `, [row.subtotal, row.order_id]);
+        }
+
+        res.status(200).json({ message: 'Productos rechazados y eliminados de la cola y el pedido.' });
     } catch (error) {
-        console.error('Error al limpiar KitchenQueue:', error);
-        res.status(500).json({ error: 'Error al limpiar KitchenQueue.' });
+        console.error('Error al rechazar productos en cocina:', error);
+        res.status(500).json({ error: 'Error al rechazar productos en cocina.' });
     }
 });
 
-    //Ambas colas
-router.delete('/queues/clear', async (req, res) => {
-    try {
-        await db.query('DELETE FROM "BarQueue";');
-        await db.query('DELETE FROM "KitchenQueue";');
-        res.status(200).json({ message: 'Ambas colas limpiadas con éxito.' });
-    } catch (error) {
-        console.error('Error al limpiar las colas:', error);
-        res.status(500).json({ error: 'Error al limpiar las colas.' });
-    }
-});
+
+
 
 
 module.exports = router;

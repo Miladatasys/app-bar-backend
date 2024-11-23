@@ -100,8 +100,8 @@ CREATE TABLE "OrderDetail" (
     order_id INTEGER REFERENCES "OrderTotal"(orderTotal_id) ON DELETE CASCADE,
     product_id INTEGER REFERENCES "Product"(product_id),
     quantity INTEGER NOT NULL,
-    unit_price DECIMAL(15, 2) NOT NULL,
-    subtotal DECIMAL(15, 2) NOT NULL,
+    unit_price DECIMAL(15, 2),
+    subtotal DECIMAL(15, 2),
     section VARCHAR(20) CHECK (section IN ('bar', 'kitchen')), -- Identifica si el producto es de barra o cocina
     status VARCHAR(20) DEFAULT 'pending'
 );

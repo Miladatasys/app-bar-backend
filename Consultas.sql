@@ -53,15 +53,30 @@
 -- SELECT * FROM "Bar" WHERE bar_id = 1;
 -- SELECT orderTotal_id, bar_id FROM "OrderTotal" WHERE orderTotal_id IN (85, 86, 87, 91, 92, 93);
 
+
 --Para conseguir todos los miembros de un grupo
 -- SELECT 
 --     gm.groupMember_id,
 --     gm.orderGroup_id,
 --     gm.user_id,
-
 --    -- gm.status,
 --     gm.is_payer
-
 -- FROM "GroupMember" gm
 -- JOIN "AppUser" au ON gm.user_id = au.user_id
 -- WHERE gm.orderGroup_id = 54;
+
+
+-- Para conseguir todos los miembros de un grupo y el creador del grupo
+-- SELECT 
+--     gm.groupMember_id,
+--     gm.orderGroup_id,
+--     gm.user_id,
+--     gm.is_payer,
+--     au.first_name AS member_first_name,
+--     og.creator_user_id,
+--     creator.first_name AS creator_first_name
+-- FROM "GroupMember" gm
+-- JOIN "AppUser" au ON gm.user_id = au.user_id
+-- JOIN "OrderGroup" og ON gm.orderGroup_id = og.orderGroup_id
+-- JOIN "AppUser" creator ON og.creator_user_id = creator.user_id
+-- WHERE gm.orderGroup_id = 60;

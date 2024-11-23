@@ -46,7 +46,7 @@ router.post('/creategroup', async (req, res) => {
     }
 });
 
-
+// Ruta para unirse a un grupo existente
 router.post('/group/:group_id/join', async (req, res) => {
     const { group_id } = req.params;
     const { user_id } = req.body;
