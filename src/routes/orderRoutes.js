@@ -2,7 +2,6 @@ const express = require('express');
 const db = require('../config/db');
 const router = express.Router();
 
-
 // Ruta para crear un nuevo pedido
 router.post('/orders', async (req, res) => {
     const { products, user_id, table_id, bar_id, special_notes, orderGroup_id } = req.body;
@@ -202,7 +201,7 @@ router.get('/kitchen/queue', async (req, res) => {
 
 
 //Para confirmar desde la vista respectiva
-// Confirmar productos en barra
+
 router.put('/bar/confirm', async (req, res) => {
     const { barQueue_ids, prices } = req.body;
 
@@ -252,33 +251,30 @@ router.put('/kitchen/confirm', async (req, res) => {
 
     try {
         // Actualiza los productos en KitchenQueue
-        const confirmedQuery = `
+        await db.query(`
             UPDATE "KitchenQueue"
             SET status = 'confirmed', confirmation_date = NOW()
             WHERE kitchenQueue_id = ANY($1)
-            RETURNING orderDetail_id;
+        `, [kitchenQueue_ids]);
+
+        // Actualiza el estado en OrderDetail
+        const orderDetailsQuery = `
+            UPDATE "OrderDetail"
+            SET status = 'ready'
+            WHERE orderDetail_id IN (
+                SELECT orderDetail_id FROM "KitchenQueue" WHERE kitchenQueue_id = ANY($1)
+            )
+            RETURNING order_id, subtotal;
         `;
-        const confirmedResult = await db.query(confirmedQuery, [kitchenQueue_ids]);
+        const orderDetailsResult = await db.query(orderDetailsQuery, [kitchenQueue_ids]);
 
-        const orderDetailIds = confirmedResult.rows.map(row => row.orderdetail_id);
-
-        // Calcula y actualiza el total para cada producto confirmado
-        for (const orderDetailId of orderDetailIds) {
-            const updateQuery = `
-                UPDATE "OrderDetail"
-                SET status = 'ready', subtotal = quantity * unit_price
-                WHERE orderDetail_id = $1
-                RETURNING order_id, subtotal;
-            `;
-            const updateResult = await db.query(updateQuery, [orderDetailId]);
-
-            const { order_id, subtotal } = updateResult.rows[0];
-
+        // Actualiza el total en OrderTotal
+        for (const row of orderDetailsResult.rows) {
             await db.query(`
                 UPDATE "OrderTotal"
                 SET total = COALESCE(total, 0) + $1
-                WHERE orderTotal_id = $2;
-            `, [subtotal, order_id]);
+                WHERE orderTotal_id = $2
+            `, [row.subtotal, row.order_id]);
         }
 
         res.status(200).json({ message: 'Productos confirmados en cocina y total actualizado.' });
@@ -365,6 +361,62 @@ router.put('/kitchen/reject', async (req, res) => {
     }
 });
 
+
+router.put('/clear-active-queues', async (req, res) => {
+    try {
+        // Actualizar el estado de todas las filas activas en BarQueue y KitchenQueue a 'rejected'
+        const rejectBarQueueQuery = `
+            UPDATE "BarQueue"
+            SET status = 'rejected', confirmation_date = NOW()
+            WHERE status = 'pending'
+            RETURNING orderDetail_id;
+        `;
+        const rejectKitchenQueueQuery = `
+            UPDATE "KitchenQueue"
+            SET status = 'rejected', confirmation_date = NOW()
+            WHERE status = 'pending'
+            RETURNING orderDetail_id;
+        `;
+
+        const barQueueResult = await db.query(rejectBarQueueQuery);
+        const kitchenQueueResult = await db.query(rejectKitchenQueueQuery);
+
+        // Combinar los orderDetail_ids rechazados de ambas colas
+        const orderDetailIds = [
+            ...barQueueResult.rows.map(row => row.orderdetail_id),
+            ...kitchenQueueResult.rows.map(row => row.orderdetail_id),
+        ];
+
+        if (orderDetailIds.length === 0) {
+            return res.status(404).json({ message: 'No hay filas activas para rechazar.' });
+        }
+
+        // Eliminar productos rechazados de OrderDetail
+        const deleteDetailsQuery = `
+            DELETE FROM "OrderDetail"
+            WHERE orderDetail_id = ANY($1)
+            RETURNING order_id, subtotal;
+        `;
+        const deleteDetailsResult = await db.query(deleteDetailsQuery, [orderDetailIds]);
+
+        // Ajustar el total en OrderTotal
+        for (const row of deleteDetailsResult.rows) {
+            await db.query(`
+                UPDATE "OrderTotal"
+                SET total = COALESCE(total, 0) - $1
+                WHERE orderTotal_id = $2;
+            `, [row.subtotal, row.order_id]);
+        }
+
+        res.status(200).json({
+            message: 'Todas las filas activas fueron rechazadas y eliminadas.',
+            rejectedDetails: deleteDetailsResult.rows,
+        });
+    } catch (error) {
+        console.error('Error al limpiar las filas activas:', error);
+        res.status(500).json({ error: 'Error al limpiar las filas activas.' });
+    }
+});
 
 
 

@@ -10,6 +10,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 const orderSummaryRoutes = require('./routes/orderSummaryRoutes');
+const historyRoutes = require('./routes/historyRoutes');
 
 // Middleware para parsear JSON
 app.use(express.json());
@@ -21,6 +22,7 @@ app.use('/api', orderRoutes);
 app.use('/api', paymentRoutes);
 app.use ('/api', groupRoutes);
 app.use ('/api', orderSummaryRoutes);
+app.use('/api', historyRoutes);
 
 
 // app.use('/api/users', userRoutes);  
