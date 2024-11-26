@@ -56,6 +56,13 @@ CREATE TABLE "Bar" (
     status VARCHAR(20) DEFAULT 'active'
 );
 
+CREATE TABLE "UserBar" (
+    user_id INTEGER REFERENCES "AppUser"(user_id) ON DELETE CASCADE,
+    bar_id INTEGER REFERENCES "Bar"(bar_id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, bar_id)
+);
+
+
 -- Tabla: Mesas del bar
 CREATE TABLE "BarTable" (
     table_id SERIAL PRIMARY KEY,
