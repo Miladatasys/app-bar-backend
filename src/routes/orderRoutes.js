@@ -58,7 +58,6 @@ router.post('/orders', async (req, res) => {
             }
         }
 
-
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
     } catch (error) {
         console.error('Error al crear el pedido:', error);
@@ -106,17 +105,13 @@ router.post('/confirm', async (req, res) => {
 });
 
 
-// Ruta para obtener una orden por su ID
+// Ruta para obtener una orden por su ID (este es el que utilizamos para BarOrderDetails)
 router.get('/orders/:orderTotal_id', async (req, res) => {
     const { orderTotal_id } = req.params;
 
     try {
         // Obtener información del pedido
         const orderQuery =
-            // `SELECT ot.*, og.orderGroup_id, og.name AS group_name, og.total_order AS group_total
-            // FROM "OrderTotal" ot
-            // LEFT JOIN "OrderGroup" og ON ot.group_order = TRUE AND ot.bar_id = og.bar_id
-            // WHERE ot.orderTotal_id = $1`;
             `SELECT 
                 ot.*, 
                 og.orderGroup_id, 
@@ -183,6 +178,7 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
     }
 });
 
+<<<<<<< HEAD
 
 router.get('/bar/queue', async (req, res) => {
     console.log('Solicitud recibida en /bar/queue');
@@ -447,4 +443,6 @@ router.put('/clear-active-queues', async (req, res) => {
 
 
 
+=======
+>>>>>>> Camila
 module.exports = router;
