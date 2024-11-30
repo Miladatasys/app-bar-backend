@@ -166,6 +166,13 @@ CREATE TABLE "KitchenQueue" (
     confirmation_date TIMESTAMP
 );
 
+CREATE TABLE "Notifications" (
+    notification_id SERIAL PRIMARY KEY,
+    bar_id INT NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
 -- Índices para optimización
 CREATE INDEX idx_order_total_user ON "OrderTotal"(user_id);

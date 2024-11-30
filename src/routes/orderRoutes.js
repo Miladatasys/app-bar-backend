@@ -383,30 +383,34 @@ router.put('/kitchen/reject', async (req, res) => {
 
 router.put('/clear-active-queues', async (req, res) => {
     try {
-        // Actualizar el estado de todas las filas activas en BarQueue y KitchenQueue a 'rejected'
+        console.log('Iniciando limpieza de colas activas...');
+
         const rejectBarQueueQuery = `
             UPDATE "BarQueue"
             SET status = 'rejected', confirmation_date = NOW()
-            WHERE status = 'pending'
+            WHERE status IN ('pending', 'active')
             RETURNING orderDetail_id;
         `;
         const rejectKitchenQueueQuery = `
             UPDATE "KitchenQueue"
             SET status = 'rejected', confirmation_date = NOW()
-            WHERE status = 'pending'
+            WHERE status IN ('pending', 'active')
             RETURNING orderDetail_id;
         `;
 
         const barQueueResult = await db.query(rejectBarQueueQuery);
         const kitchenQueueResult = await db.query(rejectKitchenQueueQuery);
 
-        // Combinar los orderDetail_ids rechazados de ambas colas
+        console.log('Resultados de BarQueue:', barQueueResult.rows);
+        console.log('Resultados de KitchenQueue:', kitchenQueueResult.rows);
+
         const orderDetailIds = [
             ...barQueueResult.rows.map(row => row.orderdetail_id),
             ...kitchenQueueResult.rows.map(row => row.orderdetail_id),
         ];
 
         if (orderDetailIds.length === 0) {
+            console.warn('No hay filas activas para rechazar.');
             return res.status(404).json({ message: 'No hay filas activas para rechazar.' });
         }
 
@@ -418,8 +422,11 @@ router.put('/clear-active-queues', async (req, res) => {
         `;
         const deleteDetailsResult = await db.query(deleteDetailsQuery, [orderDetailIds]);
 
+        console.log('Detalles eliminados:', deleteDetailsResult.rows);
+
         // Ajustar el total en OrderTotal
         for (const row of deleteDetailsResult.rows) {
+            console.log(`Ajustando total para OrderTotal ${row.order_id}`);
             await db.query(`
                 UPDATE "OrderTotal"
                 SET total = COALESCE(total, 0) - $1
@@ -436,6 +443,8 @@ router.put('/clear-active-queues', async (req, res) => {
         res.status(500).json({ error: 'Error al limpiar las filas activas.' });
     }
 });
+
+
 
 
 module.exports = router;
