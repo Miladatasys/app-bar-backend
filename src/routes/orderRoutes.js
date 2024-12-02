@@ -178,7 +178,6 @@ router.get('/orders/:orderTotal_id', async (req, res) => {
     }
 });
 
-<<<<<<< HEAD
 
 router.get('/bar/queue', async (req, res) => {
     console.log('Solicitud recibida en /bar/queue');
@@ -441,8 +440,4 @@ router.put('/clear-active-queues', async (req, res) => {
 });
 
 
-
-
-=======
->>>>>>> Camila
 module.exports = router;
