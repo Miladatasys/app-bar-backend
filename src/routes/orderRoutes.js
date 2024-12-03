@@ -6,65 +6,111 @@ const router = express.Router();
 router.post('/orders', async (req, res) => {
     const { products, user_id, table_id, bar_id, special_notes, orderGroup_id } = req.body;
 
+    console.log('Datos recibidos:', req.body);
+
     try {
-        // Crear el pedido en OrderTotal
-        const queryOrderTotal = `
-            INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, special_notes, group_order, orderGroup_id, total)
-            VALUES($1, $2, $3, $4, NOW(), $5, $6, $7, $8) RETURNING orderTotal_id
-        `;
-        const result = await db.query(queryOrderTotal, [
-            user_id,
-            table_id,
-            bar_id,
-            'in process',
-            special_notes,
-            !!orderGroup_id,
-            orderGroup_id || null,
-            0 // Total inicial en 0
-        ]);
-        const orderTotal_id = result.rows[0].ordertotal_id;
+        let orderTotal_id;
 
-        console.log('Pedido creado con ID:', orderTotal_id);
+        if (orderGroup_id) {
+            // Buscar un OrderTotal activo para el grupo
+            console.log('Buscando OrderTotal para el grupo:', orderGroup_id);
+            const queryGroupOrder = `
+                SELECT orderTotal_id FROM "OrderTotal"
+                WHERE orderGroup_id = $1 AND status = 'in process'
+            `;
+            const result = await db.query(queryGroupOrder, [orderGroup_id]);
+            orderTotal_id = result.rows[0]?.ordertotal_id;
+        } else {
+            // Crear un nuevo OrderTotal si no existe
+            console.log('Buscando OrderTotal para el usuario en la mesa:', { user_id, table_id });
+            const queryUserOrder = `
+                SELECT orderTotal_id FROM "OrderTotal"
+                WHERE user_id = $1 AND table_id = $2 AND status = 'in process'
+            `;
+            const result = await db.query(queryUserOrder, [user_id, table_id]);
+            orderTotal_id = result.rows[0]?.ordertotal_id;
 
-        // Insertar productos en OrderDetail y colas correspondientes
-        const queryOrderDetail = `
-            INSERT INTO "OrderDetail"(order_id, product_id, quantity, status, section)
-            VALUES ($1, $2, $3, 'pending', $4) RETURNING orderDetail_id
-        `;
-
-        for (const product of products) {
-            const detailResult = await db.query(queryOrderDetail, [
-                orderTotal_id,
-                product.product_id,
-                product.quantity,
-                    product.category.toLowerCase() === 'drink' ? 'bar' : 'kitchen'
-            ]);
-
-            const orderDetail_id = detailResult.rows[0].orderdetail_id;
-            console.log(`Producto insertado en OrderDetail con ID: ${orderDetail_id}`);
-
-            if (product.category.toLowerCase() === 'drink') {
-                await db.query(
-                    `INSERT INTO "BarQueue"(orderDetail_id) VALUES ($1)`,
-                    [orderDetail_id]
-                );
-                console.log(`Producto con ID ${orderDetail_id} insertado en BarQueue`);
-            } else if (product.category.toLowerCase() === 'food') {
-                await db.query(
-                    `INSERT INTO "KitchenQueue"(orderDetail_id) VALUES ($1)`,
-                    [orderDetail_id]
-                );
-                console.log(`Producto con ID ${orderDetail_id} insertado en KitchenQueue`);
+            if (!orderTotal_id) {
+                console.log('No se encontró OrderTotal, creando uno nuevo...');
+                const queryCreateOrderTotal = `
+                    INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, special_notes, group_order, orderGroup_id, total)
+                    VALUES($1, $2, $3, $4, NOW(), $5, $6, $7, $8) RETURNING orderTotal_id
+                `;
+                const createResult = await db.query(queryCreateOrderTotal, [
+                    user_id,
+                    table_id,
+                    bar_id,
+                    'in process',
+                    special_notes,
+                    !!orderGroup_id,
+                    orderGroup_id || null,
+                    0
+                ]);
+                orderTotal_id = createResult.rows[0].ordertotal_id;
+                console.log('Nuevo OrderTotal creado con ID:', orderTotal_id);
             }
         }
 
+        // Insertar productos en OrderDetail
+        const queryInsertDetail = `
+            INSERT INTO "OrderDetail"(order_id, product_id, quantity, unit_price, subtotal, status, section)
+            VALUES ($1, $2, $3, $4, $5, 'pending', $6) RETURNING orderDetail_id
+        `;
+        for (const product of products) {
+            const subtotal = product.quantity * product.price;
+            const section = product.category.toLowerCase() === 'drink' ? 'bar' : 'kitchen';
+            console.log(`Insertando producto ${product.product_id} con subtotal ${subtotal}`);
+
+            const detailResult = await db.query(queryInsertDetail, [
+                orderTotal_id,
+                product.product_id,
+                product.quantity,
+                product.price,
+                subtotal,
+                section
+            ]);
+            const orderDetail_id = detailResult.rows[0].orderdetail_id;
+            console.log(`Producto insertado con ID: ${orderDetail_id}`);
+        }
+
+        // Actualizar total acumulado
+        const totalAmount = products.reduce((sum, p) => sum + p.quantity * p.price, 0);
+        console.log('Actualizando total acumulado:', totalAmount);
+        await db.query(
+            `UPDATE "OrderTotal" SET total = total + $1 WHERE orderTotal_id = $2`,
+            [totalAmount, orderTotal_id]
+        );
+
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
     } catch (error) {
-        console.error('Error al crear el pedido:', error);
-        res.status(500).json({ error: 'Error al crear el pedido.' });
+        console.error('Error al procesar el pedido:', error);
+        res.status(500).json({ error: 'Error al procesar el pedido' });
     }
 });
 
+// Ruta para crear una nueva sesión de pedido (OrderTotal) sin productos
+router.post('/orders/create-session', async (req, res) => {
+    const { user_id, table_id, bar_id } = req.body;
+
+    try {
+        const queryCreateOrderTotal = `
+            INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, total)
+            VALUES($1, $2, $3, 'in process', NOW(), 0) RETURNING orderTotal_id
+        `;
+        const createResult = await db.query(queryCreateOrderTotal, [
+            user_id,
+            table_id,
+            bar_id
+        ]);
+        const orderTotal_id = createResult.rows[0].ordertotal_id;
+        console.log('Nuevo OrderTotal creado con ID:', orderTotal_id);
+
+        res.status(201).json({ orderTotal_id });
+    } catch (error) {
+        console.error('Error al crear la sesión de pedido:', error);
+        res.status(500).json({ error: 'Error al crear la sesión de pedido' });
+    }
+});
 
 // Ruta para confirmar un pedido
 router.post('/confirm', async (req, res) => {
