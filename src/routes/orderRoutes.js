@@ -4,14 +4,12 @@ const router = express.Router();
 
 // Ruta para crear un nuevo pedido
 router.post('/orders', async (req, res) => {
-    console.log('Order creation request received');
     const { products, user_id, table_id, bar_id, special_notes, orderGroup_id, orderTotal_id: providedOrderTotalId } = req.body;
 
     console.log('Datos recibidos en /orders:', req.body);
 
     try {
         let orderTotal_id = providedOrderTotalId;
-        console.log('Using provided orderTotal_id:', orderTotal_id);
 
         // 1. Usar el orderTotal_id proporcionado si existe
         if (!orderTotal_id) {
