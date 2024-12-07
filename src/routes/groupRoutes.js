@@ -16,13 +16,12 @@ router.post('/creategroup', async (req, res) => {
       `;
         const result = await db.query(query, [name, parseInt(creator_user_id), parseInt(table_id)]);
 
-        // Verificar si se obtuvo una fila
         if (!result.rows || result.rows.length === 0) {
             console.error('Error: No se devolvió ningún ID de grupo.');
             return res.status(500).json({ error: 'No se pudo crear el grupo. No se devolvió ningún ID.' });
         }
 
-        const group_id = result.rows[0].ordergroup_id; // Ajuste aquí
+        const group_id = result.rows[0].ordergroup_id;
         console.log('Grupo creado con éxito. ID del grupo:', group_id);
 
         // Agregar al creador como miembro del grupo
@@ -33,13 +32,10 @@ router.post('/creategroup', async (req, res) => {
         await db.query(addCreatorQuery, [group_id, creator_user_id]);
         console.log('Creador del grupo agregado como miembro del grupo.');
 
-        // Devuelves el ID del grupo creado
         return res.status(201).json({ message: 'Grupo creado exitosamente', group_id });
 
     } catch (error) {
-        // Evitar múltiples respuestas
         console.error('Error al crear el grupo:', error);
-
         if (!res.headersSent) {
             res.status(500).json({ error: 'Error al crear el grupo' });
         }
@@ -105,8 +101,6 @@ router.post('/group/:group_id/join', async (req, res) => {
     }
 });
 
-
-
 // Obtener detalles del grupo
 router.get('/group/:group_id', async (req, res) => {
     const { group_id } = req.params;
@@ -135,21 +129,42 @@ router.get('/group/:group_id', async (req, res) => {
     }
 });
 
-
-// Realizar pago en grupo
-router.post('group/:group_id/pay', async (req, res) => {
+// Ruta para realizar el pago en grupo
+router.post('/group/:group_id/pay', async (req, res) => {
     const { group_id } = req.params;
     const { user_id, amount, payment_method } = req.body;
 
     try {
-        console.log('Solicitud de pago en grupo:', { group_id, user_id, amount, payment_method });
+        // Verificar si el usuario es el anfitrión
+        const checkPayerQuery = `
+            SELECT is_payer FROM "GroupMember" WHERE orderGroup_id = $1 AND user_id = $2
+        `;
+        const payerResult = await db.query(checkPayerQuery, [group_id, user_id]);
+
+        if (payerResult.rows.length === 0 || !payerResult.rows[0].is_payer) {
+            return res.status(403).json({ message: 'Solo el anfitrión puede realizar el pago.' });
+        }
+
+        // El usuario es el anfitrión, procesar el pago
         const query = `
             INSERT INTO "Payment"(orderGroup_id, user_id, amount, payment_method, status)
             VALUES ($1, $2, $3, $4, 'pending') RETURNING payment_id
         `;
         const result = await db.query(query, [group_id, user_id, amount, payment_method]);
         const payment_id = result.rows[0].payment_id;
-        console.log('Pago', { payment_id }, ' registrado exitosamente');
+
+        console.log('Pago registrado exitosamente:', { payment_id });
+
+        // Actualizar el estado del pago a 'paid'
+        const updateOrderQuery = `
+            UPDATE "OrderGroup"
+            SET status = 'closed', total_order = $1, is_closed = true
+            WHERE orderGroup_id = $2
+        `;
+        await db.query(updateOrderQuery, [amount, group_id]);
+
+        // Notificar a los miembros del grupo que el pago ha sido realizado por el anfitrión
+        // (Por ejemplo, puedes emitir una notificación a través de WebSockets o enviar una actualización)
 
         res.status(201).json({ message: 'Pago realizado exitosamente', payment_id });
     } catch (error) {
@@ -157,6 +172,5 @@ router.post('group/:group_id/pay', async (req, res) => {
         res.status(500).json({ error: 'Error al realizar el pago' });
     }
 });
-
 
 module.exports = router;

@@ -1,7 +1,6 @@
 const db = require('../config/db'); // Conexión a la base de datos
 const io = require('socket.io')(require('../server')); // Asegúrate de importar el servidor de Socket.IO
 
-// Confirmar el pedido (al realizar el pago)
 exports.confirmOrder = async (req, res) => {
     const { paymentMethod } = req.body; // Método de pago recibido desde la vista
 
@@ -13,12 +12,18 @@ exports.confirmOrder = async (req, res) => {
             [req.user.id, req.body.id_mesa, req.body.id_bar, req.body.total, paymentMethod]
         );
 
-        // Obtener los detalles del pedido confirmado
         const orderId = result.rows[0].id;
+        const orderDetails = {
+            orderId,
+            id_mesa: req.body.id_mesa,
+            id_bar: req.body.id_bar,
+            total: req.body.total,
+            estado: 'en proceso',
+            metodo_pago: paymentMethod,
+        };
 
-        // Emitir la notificación a la barra y cocina
-        io.emit('new_order_bar', { tableNumber: req.body.id_mesa, items: req.body.products.filter(product => product.category.toLowerCase() === 'drink'), total: req.body.total });
-        io.emit('new_order_kitchen', { tableNumber: req.body.id_mesa, items: req.body.products.filter(product => product.category.toLowerCase() === 'food'), total: req.body.total });
+        // Emitir el evento solo a la barra
+        io.emit('order_confirmed_bar', { orderId, tableNumber: req.body.id_mesa, status: 'confirmed' });
 
         res.status(201).json({
             message: 'Pedido confirmado',
@@ -30,6 +35,7 @@ exports.confirmOrder = async (req, res) => {
     }
 };
 
+
 exports.createOrder = async (req, res) => {
     const { products, user_id, table_id, bar_id, special_notes, orderGroup_id } = req.body;
 
@@ -37,7 +43,13 @@ exports.createOrder = async (req, res) => {
         // Crear el pedido y obtener el orderTotal_id
         let orderTotal_id;
 
-        // Lógica para obtener o crear un OrderTotal
+        const result = await db.query(
+            `INSERT INTO "OrderTotal"(user_id, table_id, bar_id, status, creation_date, total)
+            VALUES($1, $2, $3, 'in process', NOW(), $4) RETURNING orderTotal_id`,
+            [user_id, table_id, bar_id, req.body.total]
+        );
+
+        orderTotal_id = result.rows[0].ordertotal_id; // Este es el orderTotal_id que necesitamos
 
         // Separar productos por categoría
         const drinks = products.filter(product => product.category.toLowerCase() === 'drink');
@@ -64,13 +76,73 @@ exports.createOrder = async (req, res) => {
         }
 
         // Emitir notificaciones separadas para cada sección
-        io.emit('new_order_bar', { tableNumber: table_id, items: drinks, total: req.body.total });
-        io.emit('new_order_kitchen', { tableNumber: table_id, items: foods, total: req.body.total });
+        io.emit('new_order_bar', { 
+            tableNumber: table_id, 
+            items: drinks, 
+            total: req.body.total,
+            orderId: orderTotal_id  // Incluimos el orderId
+        });
+
+        io.emit('new_order_kitchen', { 
+            tableNumber: table_id, 
+            items: foods, 
+            total: req.body.total,
+            orderId: orderTotal_id  // Incluimos el orderId
+        });
 
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
 
     } catch (error) {
         console.error('Error al crear el pedido:', error);
         res.status(500).json({ error: 'Error al crear el pedido' });
+    }
+};
+
+
+exports.confirmKitchenOrder = async (req, res) => {
+    const { orderId, tableNumber } = req.body;
+
+    try {
+        // Actualizar el estado del pedido en la base de datos
+        const result = await db.query(
+            `UPDATE Pedido SET estado = 'Listo' WHERE id = $1 RETURNING id`,
+            [orderId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Pedido no encontrado.' });
+        }
+
+        // Emitir el evento solo a la cocina
+        io.emit('order_confirmed_kitchen', { orderId, tableNumber, status: 'ready' });
+
+        res.status(200).json({ message: 'Pedido confirmado como listo', orderId });
+    } catch (error) {
+        console.error('Error al confirmar el pedido en cocina:', error);
+        res.status(500).json({ error: 'Error al confirmar el pedido en cocina' });
+    }
+};
+
+exports.rejectKitchenOrder = async (req, res) => {
+    const { orderId, tableNumber } = req.body;
+
+    try {
+        // Actualizar el estado del pedido en la base de datos
+        const result = await db.query(
+            `UPDATE Pedido SET estado = 'Rechazado' WHERE id = $1 RETURNING id`,
+            [orderId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Pedido no encontrado.' });
+        }
+
+        // Emitir el evento solo a la cocina
+        io.emit('order_rejected_kitchen', { orderId, tableNumber, status: 'rejected' });
+
+        res.status(200).json({ message: 'Pedido rechazado en cocina', orderId });
+    } catch (error) {
+        console.error('Error al rechazar el pedido en cocina:', error);
+        res.status(500).json({ error: 'Error al rechazar el pedido en cocina' });
     }
 };
