@@ -72,7 +72,23 @@ router.post('/orders', async (req, res) => {
                 subtotal,
                 section,
             ]);
-            console.log(`Producto insertado con OrderDetail ID: ${detailResult.rows[0].orderdetail_id}`);
+            const orderDetail_id = detailResult.rows[0].orderdetail_id;
+            console.log(`Producto insertado con ID: ${orderDetail_id}`);
+
+            // Insertar en la cola correspondiente
+            if (product.category.toLowerCase() === 'drink') {
+                await db.query(
+                    `INSERT INTO "BarQueue"(orderDetail_id) VALUES ($1)`,
+                    [orderDetail_id]
+                );
+                console.log(`Producto con ID ${orderDetail_id} insertado en BarQueue`);
+            } else if (product.category.toLowerCase() === 'food') {
+                await db.query(
+                    `INSERT INTO "KitchenQueue"(orderDetail_id) VALUES ($1)`,
+                    [orderDetail_id]
+                );
+                console.log(`Producto con ID ${orderDetail_id} insertado en KitchenQueue`);
+            }
         }
 
         // 4. Actualizar total acumulado en `OrderTotal`
@@ -82,6 +98,8 @@ router.post('/orders', async (req, res) => {
             `UPDATE "OrderTotal" SET total = total + $1 WHERE orderTotal_id = $2`,
             [totalAmount, orderTotal_id]
         );
+
+        
 
         res.status(201).json({ message: 'Pedido creado exitosamente', orderTotal_id });
     } catch (error) {

@@ -230,3 +230,17 @@
 
 -- Para comprobar pagos de un pedido 
 -- SELECT * FROM "OrderTotal" WHERE orderTotal_id = 430;
+
+
+--  Eliminar registros de detalles de pedidos
+-- DELETE FROM "OrderDetail";
+--  Eliminar registros de pedidos totales
+-- DELETE FROM "OrderTotal";
+--  Eliminar registros de grupos de pedidos
+-- DELETE FROM "OrderGroup";
+--  Eliminar registros de miembros de grupos
+-- DELETE FROM "GroupMember";
+--  Eliminar registros de la cola del bar
+-- DELETE FROM "BarQueue";
+--  Eliminar registros de la cola de la cocina
+-- DELETE FROM "KitchenQueue";
