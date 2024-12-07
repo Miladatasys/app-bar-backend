@@ -45,12 +45,11 @@ io.on('connection', (socket) => {
     io.emit('new_order_bar', orderDetails);  // Emitir solo a la barra
   });
 
-  // Escuchar el evento para la cocina
   socket.on('new_order_kitchen', (orderDetails) => {
     console.log('Nuevo pedido para la cocina recibido:', orderDetails);
-    // Emitir solo a la cocina
-    io.emit('new_order_kitchen', orderDetails);  // Emitir solo a la cocina
+    io.emit('new_order_kitchen', orderDetails);
   });
+  
 
   // Evento para cuando un cliente se desconecta
   socket.on('disconnect', () => {
