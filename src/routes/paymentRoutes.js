@@ -4,22 +4,26 @@ const router = express.Router();
 
 // Ruta para procesar pagos
 router.post('/payments/:orderTotal_id/pay', async (req, res) => {
+    console.log('Request received for payment processing');
+    console.log('Request body:', req.body);
     const { orderTotal_id } = req.params;
     const { user_id, groupMember_ids = [], amounts = [], payment_method } = req.body;
-    //const { user_id, groupMember_ids, amounts, payment_method } = req.body;
+    console.log('OrderTotal ID:', orderTotal_id);
+    console.log('User ID:', user_id);
+    console.log('Group Member IDs:', groupMember_ids);
+    console.log('Amounts:', amounts);
+    console.log('Payment Method:', payment_method);
 
     try {
-        const orderQuery = `SELECT user_id, status, total FROM "OrderTotal" WHERE orderTotal_id = $1`;
+        console.log('Fetching order details...');
+        const orderQuery = `SELECT user_id, status, total, confirmed_total FROM "OrderTotal" WHERE orderTotal_id = $1`;
         const orderResult = await db.query(orderQuery, [orderTotal_id]);
-
+        console.log('Order details fetched:', orderResult.rows[0]);
         if (orderResult.rows.length === 0) {
             return res.status(404).json({ message: 'Pedido no encontrado.' });
         }
 
         const order = orderResult.rows[0];
-        if (order.user_id !== user_id) {
-            return res.status(403).json({ message: 'No autorizado para realizar el pago.' });
-        }
 
         if (order.status === 'paid') {
             return res.status(400).json({ message: 'El pedido ya está pagado.' });
@@ -27,6 +31,7 @@ router.post('/payments/:orderTotal_id/pay', async (req, res) => {
 
         console.log(`Iniciando pago para la orden ${orderTotal_id}`);
         console.log(`Estado actual de la orden: ${order.status}`);
+        console.log(`Total confirmado actual: ${order.confirmed_total}`);
         console.log(`Total de la orden: ${order.total}`);
 
         let totalPaid = 0;
@@ -56,27 +61,36 @@ router.post('/payments/:orderTotal_id/pay', async (req, res) => {
 
             const paymentResult = await db.query(`
                 INSERT INTO "Payment"(orderTotal_id, user_id, amount, payment_method, status)
-                VALUES ($1, $2, $3, $4, 'completed') RETURNING amount
+                VALUES ($1, $2, $3, $4, 'completed') RETURNING amount, payment_id
             `, [orderTotal_id, user_id, paymentAmount, payment_method]);
 
             totalPaid = paymentResult.rows[0].amount;
+            paymentId = paymentResult.rows[0].payment_id;
+            console.log('Payment registered:', paymentResult.rows[0].payment_id);
         } else {
             return res.status(400).json({ message: 'Datos de pago no válidos.' });
         }
 
-        // Actualizar el estado de la orden
-        const orderStatus = totalPaid >= parseFloat(order.total) ? 'paid' : 'partially_paid';
+        console.log(`Total pagado: ${totalPaid}`);
+
+        // Actualizar el total confirmado y el estado de la orden
+        const newConfirmedTotal = parseFloat(order.confirmed_total || 0) + totalPaid;
+        const orderStatus = newConfirmedTotal >= parseFloat(order.total) ? 'paid' : 'partially_paid';
+
+        console.log(`Actualizando orden con total confirmado: ${newConfirmedTotal}, estado: ${orderStatus}`);
 
         await db.query(`
             UPDATE "OrderTotal"
-            SET status = $1
-            WHERE orderTotal_id = $2
-        `, [orderStatus, orderTotal_id]);
+            SET confirmed_total = $1, status = $2
+            WHERE orderTotal_id = $3
+        `, [newConfirmedTotal, orderStatus, orderTotal_id]);
 
         res.status(200).json({
             message: `Pago registrado exitosamente. Estado del pedido: ${orderStatus}`,
             totalPaid,
-            orderStatus
+            orderStatus,
+            newConfirmedTotal,
+            paymentId
         });
     } catch (error) {
         console.error('Error al procesar el pago:', error);
