@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/bars', async (req, res) => {
   try {
     const result = await db.query('SELECT bar_id AS id, business_name, address FROM "Bar"');
-    console.log("Bares Obtenidos: ", result.rows)
+    // console.log("Bares Obtenidos: ", result.rows)
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error al obtener los bares:', error); 
@@ -22,7 +22,7 @@ router.get('/bars/:bar_id/products', async (req, res) => {
 
   try {
     const result = await db.query('SELECT * FROM "Product" WHERE bar_id = $1', [bar_id]);
-    console.log('Resultados obtenidos:', result.rows); // Muestra los resultados obtenidos
+    // console.log('Resultados obtenidos:', result.rows); // Muestra los resultados obtenidos
     res.status(200).json(result.rows);
   } catch (error) {
     console.error('Error al obtener productos:', error); // Imprimir el error completo

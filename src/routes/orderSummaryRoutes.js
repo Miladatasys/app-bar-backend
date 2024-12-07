@@ -1,9 +1,19 @@
 const express = require('express');
 const db = require('../config/db');
 const router = express.Router();
+
 // Obtener detalles de una orden específica (OrderDetail + OrderTotal)
-router.get('/orderdetail/:table_id', async (req, res) => {
-    const { table_id } = req.params;
+router.get('/orderdetail/:orderTotal_id', async (req, res) => {
+    const { orderTotal_id } = req.params;
+
+    // Log para verificar el valor recibido
+    console.log('Received orderTotal_id:', orderTotal_id);
+
+    // Verificar que orderTotal_id no sea undefined y sea un número
+    if (!orderTotal_id || isNaN(orderTotal_id)) {
+        console.error('Invalid orderTotal_id:', orderTotal_id);
+        return res.status(400).json({ message: 'Invalid orderTotal_id' });
+    }
 
     try {
         // Obtener detalles de los productos (OrderDetail)
@@ -11,10 +21,10 @@ router.get('/orderdetail/:table_id', async (req, res) => {
             SELECT od.orderDetail_id, od.product_id, p.name, p.price, od.quantity, od.status, od.section
             FROM "OrderDetail" od
             JOIN "Product" p ON od.product_id = p.product_id
-            JOIN "OrderTotal" ot ON od.order_id = ot.orderTotal_id
-            WHERE ot.table_id = $1 AND ot.status = 'in process';
+            WHERE od.order_id = $1;
         `;
-        const orderDetailsResult = await pool.query(orderDetailsQuery, [table_id]);
+        // const orderDetailsResult = await pool.query(orderDetailsQuery, [table_id]);
+        const orderDetailsResult = await db.query(orderDetailsQuery, [orderTotal_id]);
 
         // Obtener el total acumulado (OrderTotal)
         const orderTotalQuery = `
@@ -22,7 +32,8 @@ router.get('/orderdetail/:table_id', async (req, res) => {
             FROM "OrderTotal" ot
             WHERE ot.table_id = $1 AND ot.status = 'in process';
         `;
-        const orderTotalResult = await pool.query(orderTotalQuery, [table_id]);
+        // const orderTotalResult = await db.query(orderTotalQuery, [table_id]);
+        const orderTotalResult = await db.query(orderTotalQuery, [orderTotal_id]);
 
         // Formatear la respuesta
         res.status(200).json({

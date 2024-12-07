@@ -43,6 +43,7 @@ io.on('connection', (socket) => {
     console.log('Nuevo pedido para la barra recibido:', orderDetails);
     // Emitir solo a la barra
     io.emit('new_order_bar', orderDetails);  // Emitir solo a la barra
+<<<<<<< HEAD
   });
 
   // Escuchar el evento para la cocina
@@ -50,7 +51,15 @@ io.on('connection', (socket) => {
     console.log('Nuevo pedido para la cocina recibido:', orderDetails);
     // Emitir solo a la cocina
     io.emit('new_order_kitchen', orderDetails);  // Emitir solo a la cocina
+=======
+>>>>>>> 9fca3d38e3cf86f8c0fc7c8e9c7c31d47230bc51
   });
+
+  socket.on('new_order_kitchen', (orderDetails) => {
+    console.log('Nuevo pedido para la cocina recibido:', orderDetails);
+    io.emit('new_order_kitchen', orderDetails);
+  });
+  
 
   // Evento para cuando un cliente se desconecta
   socket.on('disconnect', () => {
