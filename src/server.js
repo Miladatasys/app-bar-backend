@@ -38,18 +38,10 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('Un cliente se ha conectado');
 
-  // Escuchar el evento para la barra
   socket.on('new_order_bar', (orderDetails) => {
     console.log('Nuevo pedido para la barra recibido:', orderDetails);
     // Emitir solo a la barra
     io.emit('new_order_bar', orderDetails);  // Emitir solo a la barra
-  });
-
-  // Escuchar el evento para la cocina
-  socket.on('new_order_kitchen', (orderDetails) => {
-    console.log('Nuevo pedido para la cocina recibido:', orderDetails);
-    // Emitir solo a la cocina
-    io.emit('new_order_kitchen', orderDetails);  // Emitir solo a la cocina
   });
 
   socket.on('new_order_kitchen', (orderDetails) => {
